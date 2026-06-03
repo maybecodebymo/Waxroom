@@ -85,7 +85,7 @@ function App() {
         animate="visible"
         className="pointer-events-none absolute left-4 top-4 z-20 md:left-10 md:top-10"
       >
-        <p className="font-display text-2xl tracking-wide text-zinc-950 uppercase">
+        <p className="font-display text-xs sm:text-sm md:text-2xl tracking-wide text-zinc-950 uppercase">
           {isViewingShared
             ? (sharedOwnerName.endsWith('Room') ? sharedOwnerName : `${sharedOwnerName}'s Room`)
             : (vaultName ? `${vaultName} Room` : "Mo's Room")}
@@ -93,7 +93,7 @@ function App() {
         {isViewingShared && (
           <button
             onClick={closeSharedRoom}
-            className="pointer-events-auto mt-1.5 text-xs font-display font-bold uppercase tracking-wider text-zinc-500 underline decoration-2 decoration-zinc-950 underline-offset-4 hover:text-zinc-950 transition cursor-pointer"
+            className="pointer-events-auto mt-1 text-[10px] md:text-xs font-display font-bold uppercase tracking-wider text-zinc-500 underline decoration-2 decoration-zinc-950 underline-offset-4 hover:text-zinc-950 transition cursor-pointer"
           >
             Back to My Room
           </button>

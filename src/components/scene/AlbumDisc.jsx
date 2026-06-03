@@ -34,9 +34,10 @@ function DiscMesh({ album, target, opacity = 1, isSelected, onSelect }) {
     if (isSelected && target.scale > 0.01) {
       const pRot = meshRef.current.parent ? meshRef.current.parent.rotation.y : 0;
       
-      const worldX = 0.6;
-      const worldY = 0.5;
-      const worldZ = 2.0;
+      const isMobile = window.innerWidth < 768;
+      const worldX = isMobile ? 0.0 : 0.6;
+      const worldY = isMobile ? 1.5 : 0.5;
+      const worldZ = isMobile ? 2.2 : 2.0;
 
       const localX = worldX * Math.cos(-pRot) + worldZ * Math.sin(-pRot);
       const localZ = -worldX * Math.sin(-pRot) + worldZ * Math.cos(-pRot);

@@ -60,7 +60,7 @@ function SceneControlsOverlay() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.45, delay: 0.15 }}
-          className="absolute right-4 top-4 z-30 w-[min(92vw,330px)] rounded-2xl glass md:right-8 md:top-8"
+          className="absolute right-4 top-4 z-30 w-[240px] md:w-[330px] rounded-2xl glass md:right-8 md:top-8"
         >
           <div className="flex w-full items-center gap-2 p-2 border-b-2 border-zinc-950">
             {/* Feed Button */}
