@@ -88,7 +88,10 @@ function TutorialTour() {
               top: r.top - 4,
               width: r.width + 8,
               height: r.height + 8,
-              borderRadius: window.getComputedStyle(el).borderRadius || '24px',
+              borderRadius: (() => {
+                const r = window.getComputedStyle(el).borderRadius;
+                return r && r !== '0px' ? r : '24px';
+              })(),
             },
           ]);
         } else {

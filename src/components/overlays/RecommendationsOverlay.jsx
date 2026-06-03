@@ -23,10 +23,10 @@ function RecommendationsOverlay() {
     try {
       // ── Build exclusion sets ──────────────────────────────────
       const roomArtists = new Set(
-        albums.map((a) => a.artist.toLowerCase().trim())
+        albums.map((a) => (a.artist || '').toLowerCase().trim())
       );
       const roomTitles = new Set(
-        albums.map((a) => a.album_title.toLowerCase().trim())
+        albums.map((a) => (a.album_title || '').toLowerCase().trim())
       );
       const roomCollectionIds = new Set(
         albums.filter((a) => a.collectionId).map((a) => a.collectionId)
@@ -222,7 +222,7 @@ function RecommendationsOverlay() {
             </div>
           ) : recs.length === 0 ? (
             <p className="py-6 text-center text-xs font-display font-bold uppercase tracking-wider text-zinc-400">
-              Add more albums to get recommendations!
+              No recommendations available. Add more albums or try again!
             </p>
           ) : (
             <div className="max-h-[50vh] space-y-2.5 overflow-y-auto">
