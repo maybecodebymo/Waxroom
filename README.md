@@ -62,7 +62,9 @@ src/
 ├── App.jsx                          # Root layout + URL sharing logic
 ├── main.jsx                         # React entry point
 ├── index.css                        # Global styles + Tailwind + glass utility
-├── data/mockAlbums.js               # Default album collection
+├── data/
+│   ├── mockAlbums.js                # Default album collection
+│   └── mockRooms.js                 # Default rooms for community feed
 ├── store/useGalleryStore.js         # Zustand state management
 ├── utils/lastFmService.js           # Last.fm API integration
 └── components/
@@ -74,5 +76,8 @@ src/
         ├── AddAlbumModal.jsx        # CRUD modal for albums
         ├── FilterBar.jsx            # Genre filter bar
         ├── SceneControlsOverlay.jsx # Scene tuning + Last.fm + sharing
-        └── RecommendationsOverlay.jsx # Discovery engine
+        ├── RecommendationsOverlay.jsx # Discovery engine
+        ├── TimelineFeed.jsx         # Community timeline feed drawer
+        ├── OnboardingModal.jsx      # Room naming welcome popup
+        └── TutorialTour.jsx         # Step-by-step interactive tutorial
 ```

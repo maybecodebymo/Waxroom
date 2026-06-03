@@ -31,16 +31,16 @@ body {
 
 /* Tactile brutalist inputs */
 input[type="text"], textarea {
-  border: 2px solid #09090b !important;
-  border-radius: 8px !important;
-  background: #ffffff !important;
-  box-shadow: 2px 2px 0px 0px #09090b !important;
-  font-family: 'Space Mono', monospace !important;
+  border: 2px solid #09090b;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 2px 2px 0px 0px #09090b;
+  font-family: 'Space Mono', monospace;
   transition: all 0.15s ease-out;
 }
 input[type="text"]:focus, textarea:focus {
-  outline: none !important;
-  box-shadow: 2px 2px 0px 0px #f97316 !important; /* Orange */
+  outline: none;
+  box-shadow: 2px 2px 0px 0px #f97316; /* Orange */
 }
 
 /* Custom brutalist range sliders */

@@ -42,7 +42,7 @@ export const fetchLastFmRoom = async (username, apiKey) => {
         const trackRes = await fetch(`https://itunes.apple.com/lookup?id=${appleData.collectionId}&entity=song`);
         const trackData = await trackRes.json();
         
-        const tracklist = trackData.results
+        const tracklist = (trackData.results || [])
           .filter(t => t.wrapperType === 'track')
           .map(t => ({
             title: t.trackName,

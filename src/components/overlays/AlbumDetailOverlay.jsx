@@ -63,7 +63,7 @@ function AlbumDetailOverlay() {
             animate={{ opacity: 0.15 }}
             exit={{ opacity: 0 }}
             onClick={() => selectAlbum(null)}
-            className="fixed inset-0 z-25 bg-black"
+            className="fixed inset-0 z-20 bg-black"
           />
           <motion.aside
             key={album.id}
@@ -145,7 +145,11 @@ function AlbumDetailOverlay() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => deleteAlbum(album.id)}
+                  onClick={() => {
+                    if (window.confirm(`Are you sure you want to remove "${album.album_title}" from your room?`)) {
+                      deleteAlbum(album.id);
+                    }
+                  }}
                   className="inline-flex items-center gap-2 rounded-lg border-2 border-zinc-950 bg-red-100 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-red-700 shadow-[2px_2px_0px_#09090b] transition hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_#09090b] active:translate-y-0.5 active:shadow-none cursor-pointer"
                 >
                   <Trash2 size={12} /> Remove

@@ -199,7 +199,7 @@ export const useGalleryStore = create(
         const storedMyAlbums = persistedState?.myAlbums;
         const storedTimelineRooms = persistedState?.timelineRooms;
         const cleanMyAlbums = Array.isArray(storedMyAlbums) && storedMyAlbums.length > 0
-          ? storedMyAlbums.filter(a => a.texture_url && !a.texture_url.startsWith('data:'))
+          ? storedMyAlbums.filter(a => !!a.texture_url)
           : [];
         const myAlbums = cleanMyAlbums.length > 0 ? cleanMyAlbums : currentState.myAlbums;
         const timelineRooms = Array.isArray(storedTimelineRooms) && storedTimelineRooms.length > 0

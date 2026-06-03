@@ -82,7 +82,7 @@ function AddAlbumModal() {
         ? editingAlbum.tracklist.map((track) => ({
             id: safeTrackId(),
             title: track.title ?? '',
-            category: track.category === 'hit' ? 'hit' : 'meh',
+            category: ['hit', 'bop', 'meh'].includes(track.category) ? track.category : 'meh',
           }))
         : [blankTrack()]
     );
@@ -194,7 +194,7 @@ function AddAlbumModal() {
     setArtist(appleAlbum.artistName || '');
     setAlbumTitle(appleAlbum.collectionName || '');
     setGenre(appleAlbum.primaryGenreName || genres[0] || 'Alt');
-    setTextureUrl(appleAlbum.artworkUrl100.replace('100x100bb', '600x600bb'));
+    setTextureUrl(appleAlbum.artworkUrl100 ? appleAlbum.artworkUrl100.replace('100x100bb', '600x600bb') : '');
 
     try {
       setIsProcessing(true);

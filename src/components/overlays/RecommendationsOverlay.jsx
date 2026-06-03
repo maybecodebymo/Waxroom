@@ -115,10 +115,10 @@ function RecommendationsOverlay() {
             if (seenIds.has(item.collectionId)) continue;
 
             // Exclude artists already in room
-            if (roomArtists.has(item.artistName.toLowerCase().trim())) continue;
+            if (item.artistName && roomArtists.has(item.artistName.toLowerCase().trim())) continue;
 
             // Exclude albums already in room (by title or collectionId)
-            if (roomTitles.has(item.collectionName.toLowerCase().trim())) continue;
+            if (item.collectionName && roomTitles.has(item.collectionName.toLowerCase().trim())) continue;
             if (roomCollectionIds.has(item.collectionId)) continue;
 
             // Exclude compilations / greatest hits
@@ -176,7 +176,7 @@ function RecommendationsOverlay() {
       genre: rec.primaryGenreName || 'Alt',
       rating: 7,
       description: 'Discovered through the Waxroom recommendation engine.',
-      texture_url: rec.artworkUrl100.replace('100x100bb', '600x600bb'),
+      texture_url: rec.artworkUrl100 ? rec.artworkUrl100.replace('100x100bb', '600x600bb') : '',
       tracklist: tracklist.length > 0 ? tracklist : [{ title: 'Track 1', category: 'meh' }],
     };
 

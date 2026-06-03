@@ -91,6 +91,8 @@ function SceneControlsOverlay() {
                 navigator.clipboard.writeText(shareUrl).then(() => {
                   setShareCopied(true);
                   setTimeout(() => setShareCopied(false), 3000);
+                }).catch((err) => {
+                  console.error('Clipboard write failed:', err);
                 });
               }}
               className="flex-1 py-1.5 rounded-lg bg-white border-2 border-zinc-950 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-950 transition cursor-pointer hover:-translate-y-0.5 active:translate-y-0.5 shadow-[2px_2px_0px_#09090b] hover:shadow-[3px_3px_0px_#09090b] active:shadow-none flex items-center justify-center gap-1"

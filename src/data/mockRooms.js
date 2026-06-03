@@ -218,7 +218,6 @@ export const mockRooms = [
         genre: 'Electronic',
         rating: 9.3,
         description: 'Gritty, distorted electro house with church organ hooks and pop sensibilities.',
-        texture_url: 'https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/4a/60/a6/4a60a6a4-4cc4-659f-d31a-e66699ebf80f/16UMGIM33615.rgb.jpg/600x600bb.jpg', // Using a placeholder since Cross url is long, let's keep it clean
         texture_url: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/ad/7f/7a/ad7f7af9-5c4e-f2b3-db82-2736b0abfbfa/825646961474.jpg/600x600bb.jpg',
         tracklist: [
           track('Genesis', 'hit'),
