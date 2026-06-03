@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+@import 'tailwindcss';
+
+:root {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color-scheme: light;
+  --grain-bg: #f4f4f2;
+  --panel-bg: rgba(250, 250, 249, 0.72);
+  --panel-border: rgba(255, 255, 255, 0.78);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--grain-bg);
+}
+
+@theme {
+  --font-display: 'Space Mono', monospace;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+}
+
+.glass {
+  background: #ffffff;
+  border: 2px solid #09090b;
+  box-shadow: 4px 4px 0px 0px #09090b;
+}
+
+/* Tactile brutalist inputs */
+input[type="text"], textarea {
+  border: 2px solid #09090b !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  box-shadow: 2px 2px 0px 0px #09090b !important;
+  font-family: 'Space Mono', monospace !important;
+  transition: all 0.15s ease-out;
+}
+input[type="text"]:focus, textarea:focus {
+  outline: none !important;
+  box-shadow: 2px 2px 0px 0px #f97316 !important; /* Orange */
+}
+
+/* Custom brutalist range sliders */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #e4e4e7;
+  height: 6px;
+  border: 1px solid #09090b;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 18px;
+  background: #f97316; /* Orange */
+  border: 2px solid #09090b;
+  cursor: ew-resize;
+  box-shadow: 1px 1px 0px #09090b;
+  border-radius: 2px;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 18px;
+  background: #f97316;
+  border: 2px solid #09090b;
+  cursor: ew-resize;
+  box-shadow: 1px 1px 0px #09090b;
+  border-radius: 2px;
+}
+
+/* Stark Brutalist Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f5f5f4;
+  border-left: 2px solid #09090b;
+  border-top: 2px solid #09090b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #09090b;
+}
