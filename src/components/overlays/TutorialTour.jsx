@@ -21,7 +21,7 @@ const tourSteps = [
   {
     title: '3. Expand & Recommend',
     icon: Sparkles,
-    description: 'Build your music library! Tap the "+" button on the left to add records manually or search the iTunes database. Tap the "Recommendations" button on the right for smart, customized recommendations based on your room\'s genres and artists.',
+    description: "Time to drop some wax! Customize your space by adding your very first vinyl. Tap the '+' button below to search the iTunes database or enter a record manually. Once you have a few records, tap the 'Recommendations' button to discover fresh music!",
     cardPosition: 'bottom-32 left-1/2 -translate-x-1/2 w-[min(90vw,420px)]',
     targetId: 'bottom-actions', // Special case to highlight both buttons
   },

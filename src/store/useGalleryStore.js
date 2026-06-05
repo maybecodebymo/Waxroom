@@ -1,7 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { baseGenres, mockAlbums } from '../data/mockAlbums';
-import { mockRooms } from '../data/mockRooms';
 
 const buildGenres = (albums) => ['All', ...new Set(albums.map((album) => album.genre))];
 
@@ -43,9 +41,9 @@ const normalizeSceneControls = (controls, legacy = false) => {
 export const useGalleryStore = create(
   persist(
     (set, get) => ({
-      myAlbums: mockAlbums,
-      albums: mockAlbums,
-      genres: baseGenres,
+      myAlbums: [],
+      albums: [],
+      genres: ['All'],
       selectedAlbumId: null,
       activeGenre: 'All',
       isAddModalOpen: false,
@@ -61,11 +59,26 @@ export const useGalleryStore = create(
       setRecommendationsOpen: (isOpen) => set({ isRecommendationsOpen: isOpen }),
       isViewingShared: false,
       sharedOwnerName: null,
-      timelineRooms: mockRooms,
+      timelineRooms: [],
       isFeedOpen: false,
       setFeedOpen: (isOpen) => set({ isFeedOpen: isOpen }),
       toggleEditMode: () => set((state) => ({ canEditAlbums: !state.canEditAlbums })),
-      selectAlbum: (albumId) => set({ selectedAlbumId: albumId }),
+      activeTrack: null,
+      isPlaying: false,
+      activeBgColor: '#f5f5f4',
+      setActiveTrack: (track) => set({ activeTrack: track, isPlaying: !!track }),
+      setPlaying: (isPlaying) => set({ isPlaying }),
+      setActiveBgColor: (color) => set({ activeBgColor: color }),
+      selectAlbum: (albumId) => set((state) => {
+        // Reset active track and background color when selecting a new album / deselecting
+        const nextState = { selectedAlbumId: albumId };
+        if (!albumId) {
+          nextState.activeTrack = null;
+          nextState.isPlaying = false;
+          nextState.activeBgColor = '#f5f5f4';
+        }
+        return nextState;
+      }),
       setGenre: (genre) =>
         set((state) => ({
           activeGenre: genre,
@@ -122,11 +135,10 @@ export const useGalleryStore = create(
         set((state) => {
           const myAlbums = state.myAlbums.filter((album) => album.id !== albumId);
           const nextSelected = state.selectedAlbumId === albumId ? null : state.selectedAlbumId;
-          const finalMyAlbums = myAlbums.length ? myAlbums : mockAlbums;
           return {
-            myAlbums: finalMyAlbums,
-            albums: finalMyAlbums,
-            genres: buildGenres(finalMyAlbums),
+            myAlbums,
+            albums: myAlbums,
+            genres: buildGenres(myAlbums),
             selectedAlbumId: nextSelected,
           };
         });

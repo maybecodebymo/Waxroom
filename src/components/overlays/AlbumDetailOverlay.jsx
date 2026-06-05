@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useMemo, useState, useEffect } from 'react';
-import { Disc3, Pencil, Star, Trash2, X } from 'lucide-react';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { Disc3, Pencil, Star, Trash2, X, Play, Pause, Music } from 'lucide-react';
 import { useGalleryStore } from '../../store/useGalleryStore';
+import { extractAverageColor } from '../../utils/colorUtils';
 
 function AlbumDetailOverlay() {
   const albums = useGalleryStore((state) => state.albums);
@@ -11,7 +12,14 @@ function AlbumDetailOverlay() {
   const openEditModal = useGalleryStore((state) => state.openEditModal);
   const deleteAlbum = useGalleryStore((state) => state.deleteAlbum);
 
+  const activeTrack = useGalleryStore((state) => state.activeTrack);
+  const isPlaying = useGalleryStore((state) => state.isPlaying);
+  const setActiveTrack = useGalleryStore((state) => state.setActiveTrack);
+  const setPlaying = useGalleryStore((state) => state.setPlaying);
+  const setActiveBgColor = useGalleryStore((state) => state.setActiveBgColor);
+
   const [isMobile, setIsMobile] = useState(false);
+  const audioRef = useRef(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -22,10 +30,52 @@ function AlbumDetailOverlay() {
 
   const album = useMemo(() => albums.find((entry) => entry.id === selectedAlbumId), [albums, selectedAlbumId]);
 
+  // Color blending hook
+  useEffect(() => {
+    if (album) {
+      extractAverageColor(album.texture_url, album.genre).then((color) => {
+        setActiveBgColor(color);
+      });
+    } else {
+      setActiveBgColor('#f5f5f4');
+    }
+  }, [album, setActiveBgColor]);
+
+  // Audio synchronization hook
+  useEffect(() => {
+    if (!audioRef.current) return;
+    if (activeTrack && activeTrack.previewUrl) {
+      audioRef.current.src = activeTrack.previewUrl;
+      if (isPlaying) {
+        audioRef.current.play().catch((err) => console.log('Audio playback block or failure:', err));
+      } else {
+        audioRef.current.pause();
+      }
+    } else {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+    }
+  }, [activeTrack]);
+
+  useEffect(() => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      if (audioRef.current.src) {
+        audioRef.current.play().catch((err) => console.log('Audio playback block or failure:', err));
+      }
+    } else {
+      audioRef.current.pause();
+    }
+  }, [isPlaying]);
+
+  const handleAudioEnded = () => {
+    setPlaying(false);
+  };
+
   const containerVariants = useMemo(() => {
     if (isMobile) {
       return {
-        hidden: { y: '100%', opacity: 1 },
+        hidden: { y: '120%', opacity: 1 },
         visible: {
           y: 0,
           opacity: 1,
@@ -34,7 +84,7 @@ function AlbumDetailOverlay() {
             ease: [0.16, 1, 0.3, 1],
           },
         },
-        exit: { y: '100%', opacity: 1, transition: { duration: 0.25 } },
+        exit: { y: '120%', opacity: 1, transition: { duration: 0.25 } },
       };
     } else {
       return {
@@ -57,13 +107,16 @@ function AlbumDetailOverlay() {
     <AnimatePresence>
       {album && (
         <>
-          {/* Stark overlay backdrop (clean contrast) */}
+          {/* Background HTML5 audio player */}
+          <audio ref={audioRef} onEnded={handleAudioEnded} className="hidden" />
+
+          {/* Overlay backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.15 }}
+            animate={{ opacity: 0.08 }}
             exit={{ opacity: 0 }}
             onClick={() => selectAlbum(null)}
-            className="fixed inset-0 z-20 bg-black"
+            className="fixed inset-0 z-20 bg-black pointer-events-auto"
           />
           <motion.aside
             key={album.id}
@@ -71,25 +124,25 @@ function AlbumDetailOverlay() {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className={`fixed z-30 overflow-y-auto p-6 bg-white border-2 border-zinc-950 text-zinc-950 ${
+            className={`fixed z-30 overflow-y-auto p-6 glass text-zinc-900 pointer-events-auto ${
               isMobile
-                ? 'bottom-0 left-0 right-0 max-h-[48vh] w-full rounded-t-[32px] border-x-0 border-b-0 shadow-[0_-8px_24px_rgba(0,0,0,0.15)]'
-                : 'right-4 top-1/2 -translate-y-1/2 max-h-[85vh] w-[420px] rounded-2xl shadow-[6px_6px_0px_#09090b] md:right-8'
+                ? 'bottom-4 left-4 right-4 max-h-[44vh] w-[calc(100%-32px)] rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.12)] border border-white/50'
+                : 'right-4 top-1/2 max-h-[85vh] w-[420px] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/60 md:right-8'
             }`}
           >
-            <div className="mb-4 flex items-center justify-between gap-2 border-b-2 border-zinc-950 pb-3">
-              <div className="flex items-center gap-2 text-zinc-800">
-                <Disc3 size={18} />
+            <div className="mb-4 flex items-center justify-between gap-2 border-b border-white/30 pb-3">
+              <div className="flex items-center gap-2 text-zinc-700">
+                <Disc3 size={18} className="text-orange-500 animate-spin" style={{ animationDuration: '6s', animationPlayState: isPlaying && activeTrack && activeTrack.artist === album.artist ? 'running' : 'paused' }} />
                 <p className="font-display text-xs uppercase tracking-wider">Now Playing</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="rounded-md border-2 border-zinc-950 bg-orange-400 px-3 py-0.5 text-xs font-bold uppercase tracking-wider text-zinc-950">
+                <span className="rounded-lg bg-orange-500 px-3 py-0.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm">
                   {album.genre}
                 </span>
                 <button
                   type="button"
                   onClick={() => selectAlbum(null)}
-                  className="rounded-lg border-2 border-zinc-950 bg-white p-1 text-zinc-950 transition hover:bg-zinc-100 active:translate-y-0.5 cursor-pointer"
+                  className="rounded-full glass-btn p-1.5 text-zinc-800 cursor-pointer flex items-center justify-center"
                   aria-label="Close details"
                 >
                   <X size={14} />
@@ -104,42 +157,99 @@ function AlbumDetailOverlay() {
               {album.album_title}
             </p>
 
-            <div className="mt-4 inline-flex items-center gap-2 rounded-lg border-2 border-zinc-950 bg-zinc-50 px-3 py-1 font-display">
+            <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/40 bg-white/40 px-3 py-1 font-display shadow-sm">
               <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Rating</span>
               <span className="text-xs font-bold text-zinc-950">{album.rating}/10</span>
             </div>
 
-            <p className="mt-4 text-xs font-body text-zinc-600 leading-relaxed">
+            <p className="mt-4 text-xs font-body text-zinc-650 leading-relaxed">
               {album.description}
             </p>
 
-            <section className="mt-5 rounded-xl border-2 border-zinc-950 bg-zinc-50 p-4 shadow-[2px_2px_0px_#09090b]">
+            <section className="mt-5 rounded-xl border border-white/40 bg-white/40 p-4 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
               <h3 className="mb-3 font-display text-[10px] font-bold uppercase tracking-wider text-zinc-500">Tracklist</h3>
-              <ul className="space-y-2.5 text-xs font-body text-zinc-700">
+              <ul className="space-y-1 text-xs font-body text-zinc-700">
                 {album.tracklist?.length > 0 ? (
-                  album.tracklist.map((track, idx) => (
-                    <li key={`${track.title}-${idx}`} className="flex items-start gap-2.5">
-                      <span className="min-w-[1.25rem] text-right font-display text-zinc-400">{idx + 1}.</span>
-                      <span className={`leading-tight ${track.category === 'hit' ? 'font-bold text-zinc-950' : ''}`}>
-                        {track.title}
-                      </span>
-                      {track.category === 'hit' && (
-                        <Star size={12} strokeWidth={2.5} className="mt-[2px] shrink-0 text-zinc-950" />
-                      )}
-                    </li>
-                  ))
+                  album.tracklist.map((track, idx) => {
+                    const isCurrentTrack = activeTrack && activeTrack.previewUrl === track.previewUrl && activeTrack.title === track.title;
+                    const isTrackPlaying = isCurrentTrack && isPlaying;
+                    const hasPreview = !!track.previewUrl;
+
+                    return (
+                      <li key={`${track.title}-${idx}`} className="flex items-center justify-between gap-2.5 py-1 hover:bg-white/20 rounded-lg px-2 transition-colors">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <span className="min-w-[1.25rem] text-right font-display text-zinc-400">{idx + 1}.</span>
+                          <span className={`leading-tight truncate ${track.category === 'hit' ? 'font-bold text-zinc-950' : ''} ${isCurrentTrack ? 'text-orange-500 font-bold' : ''}`}>
+                            {track.title}
+                          </span>
+                          {track.category === 'hit' && (
+                            <Star size={12} strokeWidth={2.5} className="shrink-0 text-orange-500" />
+                          )}
+                        </div>
+                        {hasPreview && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isCurrentTrack) {
+                                setPlaying(!isPlaying);
+                              } else {
+                                setActiveTrack({
+                                  title: track.title,
+                                  artist: album.artist,
+                                  previewUrl: track.previewUrl,
+                                });
+                              }
+                            }}
+                            className={`rounded-full p-1 cursor-pointer flex items-center justify-center transition-all ${
+                              isCurrentTrack ? 'bg-orange-500 text-white shadow-sm' : 'glass-btn text-zinc-700 hover:text-zinc-900'
+                            }`}
+                            aria-label={isTrackPlaying ? 'Pause preview' : 'Play preview'}
+                          >
+                            {isTrackPlaying ? <Pause size={10} /> : <Play size={10} />}
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })
                 ) : (
-                  <li className="text-zinc-400 italic">No tracks listed.</li>
+                  <li className="text-zinc-400 italic px-2">No tracks listed.</li>
                 )}
               </ul>
             </section>
 
+            {/* Frosted glass audio player */}
+            {activeTrack && (
+              <div className="mt-5 flex items-center gap-3 rounded-xl border border-white/60 bg-white/50 backdrop-blur-md p-3 shadow-md">
+                <div className="rounded-full bg-orange-500 p-2 text-white animate-spin" style={{ animationDuration: '4s', animationPlayState: isPlaying ? 'running' : 'paused' }}>
+                  <Music size={14} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[9px] font-display font-bold uppercase tracking-wider text-zinc-400">Track Preview</p>
+                  <p className="text-xs font-bold text-zinc-900 truncate">{activeTrack.title}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPlaying(!isPlaying)}
+                  className="rounded-full bg-zinc-950 p-2 text-white shadow hover:bg-zinc-800 transition cursor-pointer flex items-center justify-center"
+                >
+                  {isPlaying ? <Pause size={12} /> : <Play size={12} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTrack(null)}
+                  className="rounded-full glass-btn p-1.5 text-zinc-500 hover:text-zinc-850 cursor-pointer flex items-center justify-center"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+
             {canEditAlbums && (
-              <div className="mt-5 flex items-center justify-end gap-2 border-t-2 border-zinc-950 pt-4">
+              <div className="mt-5 flex items-center justify-end gap-2 border-t border-white/20 pt-4">
                 <button
                   type="button"
                   onClick={() => openEditModal(album.id)}
-                  className="inline-flex items-center gap-2 rounded-lg border-2 border-zinc-950 bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-zinc-950 shadow-[2px_2px_0px_#09090b] transition hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_#09090b] active:translate-y-0.5 active:shadow-none cursor-pointer"
+                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-wider text-zinc-800 glass-btn cursor-pointer"
                 >
                   <Pencil size={12} /> Edit
                 </button>
@@ -150,7 +260,7 @@ function AlbumDetailOverlay() {
                       deleteAlbum(album.id);
                     }
                   }}
-                  className="inline-flex items-center gap-2 rounded-lg border-2 border-zinc-950 bg-red-100 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-red-700 shadow-[2px_2px_0px_#09090b] transition hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_#09090b] active:translate-y-0.5 active:shadow-none cursor-pointer"
+                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-wider text-red-600 bg-red-50/50 border border-red-200/50 backdrop-blur-md hover:bg-red-50 hover:text-red-700 transition-all cursor-pointer active:scale-97"
                 >
                   <Trash2 size={12} /> Remove
                 </button>

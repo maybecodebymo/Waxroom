@@ -3,6 +3,15 @@ import { Sparkles, X, Plus, Loader2 } from 'lucide-react';
 import { useState, useCallback, useEffect } from 'react';
 import { useGalleryStore } from '../../store/useGalleryStore';
 
+const shuffle = (array) => {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
+
 function RecommendationsOverlay() {
   const albums = useGalleryStore((state) => state.albums);
   const addAlbum = useGalleryStore((state) => state.addAlbum);
@@ -66,28 +75,58 @@ function RecommendationsOverlay() {
       // ── Build multi-pronged search terms ──────────────────────
       const searchTerms = [];
 
-      // 1) Genre exploration – fresh / adjacent music
-      const genreSuffixes = [
-        'new album 2025',
-        'rising',
-        'essential album',
-      ];
-      for (const genre of topGenres) {
-        const suffix = genreSuffixes[searchTerms.length % genreSuffixes.length];
-        searchTerms.push(`${genre} ${suffix}`);
-      }
+      if (albums.length === 0) {
+        // Fallback for new/empty rooms
+        const defaults = [
+          'indie rising',
+          'classic hip hop',
+          'ambient electronic',
+          'essential jazz',
+          'synthwave gems',
+          'classic rock masterpieces',
+          'neo soul',
+          'post punk'
+        ];
+        searchTerms.push(...shuffle(defaults).slice(0, 5));
+      } else {
+        // 1) Genre exploration – fresh / adjacent music
+        const genreSuffixes = [
+          'new album 2025',
+          'rising',
+          'essential album',
+          'classics',
+          'underground gems',
+          'masterpiece'
+        ];
+        const shuffledSuffixes = shuffle(genreSuffixes);
+        for (let i = 0; i < topGenres.length; i++) {
+          const genre = topGenres[i];
+          const suffix = shuffledSuffixes[i % shuffledSuffixes.length];
+          searchTerms.push(`${genre} ${suffix}`);
+        }
 
-      // 2) Related artist discovery
-      for (const artist of topArtists.slice(0, 3)) {
-        searchTerms.push(`${artist} similar to`);
-      }
+        // 2) Related artist discovery
+        const artistTemplates = [
+          (artist) => `${artist} similar to`,
+          (artist) => `if you like ${artist}`,
+          (artist) => `${artist} style`,
+          (artist) => `${artist} influence`
+        ];
+        for (const artist of topArtists.slice(0, 3)) {
+          const template = artistTemplates[Math.floor(Math.random() * artistTemplates.length)];
+          searchTerms.push(template(artist));
+        }
 
-      // 3) Cross-pollination – fuse distinct genres
-      if (topGenres.length >= 2) {
-        searchTerms.push(`${topGenres[0]} ${topGenres[1]} crossover`);
-      }
-      if (topGenres.length >= 3) {
-        searchTerms.push(`${topGenres[0]} ${topGenres[2]} fusion`);
+        // 3) Cross-pollination – fuse distinct genres
+        if (topGenres.length >= 2) {
+          const crossoverTemplates = [
+            (g1, g2) => `${g1} ${g2} crossover`,
+            (g1, g2) => `${g1} ${g2} fusion`,
+            (g1, g2) => `mix of ${g1} and ${g2}`
+          ];
+          const template = crossoverTemplates[Math.floor(Math.random() * crossoverTemplates.length)];
+          searchTerms.push(template(topGenres[0], topGenres[1]));
+        }
       }
 
       // Cap at 8 search terms to keep runtime reasonable
@@ -105,7 +144,7 @@ function RecommendationsOverlay() {
           const res = await fetch(
             `https://itunes.apple.com/search?term=${encodeURIComponent(
               terms[i]
-            )}&entity=album&limit=10`
+            )}&entity=album&limit=15`
           );
           const data = await res.json();
           if (!data.results) continue;
@@ -132,15 +171,9 @@ function RecommendationsOverlay() {
         }
       }
 
-      // ── Sort: recent releases first, then higher track counts ─
-      allResults.sort((a, b) => {
-        const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
-        const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
-        if (dateB !== dateA) return dateB - dateA;
-        return (b.trackCount || 0) - (a.trackCount || 0);
-      });
-
-      setRecs(allResults.slice(0, 10));
+      // Shuffle results for maximum variety
+      const shuffledResults = shuffle(allResults);
+      setRecs(shuffledResults.slice(0, 10));
     } catch (err) {
       console.error('Recommendations failed:', err);
     } finally {
@@ -164,7 +197,7 @@ function RecommendationsOverlay() {
       const data = await res.json();
       tracklist = data.results
         .filter((t) => t.wrapperType === 'track')
-        .map((t) => ({ title: t.trackName, category: 'meh' }));
+        .map((t) => ({ title: t.trackName, category: 'meh', previewUrl: t.previewUrl || null }));
     } catch (err) {
       console.warn('Tracklist fetch failed:', err);
     }
@@ -208,7 +241,7 @@ function RecommendationsOverlay() {
               </button>
               <button
                 onClick={() => setRecommendationsOpen(false)}
-                className="rounded-lg border-2 border-zinc-950 bg-white p-1 text-zinc-950 hover:bg-zinc-100 active:translate-y-0.5 cursor-pointer"
+                className="rounded-full glass-btn p-1.5 text-zinc-800 cursor-pointer flex items-center justify-center"
               >
                 <X size={12} />
               </button>
@@ -217,7 +250,7 @@ function RecommendationsOverlay() {
 
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 size={20} className="animate-spin text-zinc-900" />
+              <Loader2 size={20} className="animate-spin text-orange-500" />
               <span className="ml-2 text-xs font-display font-bold uppercase tracking-wider text-zinc-500">Analyzing room...</span>
             </div>
           ) : recs.length === 0 ? (
@@ -225,18 +258,18 @@ function RecommendationsOverlay() {
               No recommendations available. Add more albums or try again!
             </p>
           ) : (
-            <div className="max-h-[50vh] space-y-2.5 overflow-y-auto">
+            <div className="max-h-[50vh] space-y-2.5 overflow-y-auto pr-1">
               {recs.map((rec) => {
                 const isAdded = addedIds.has(rec.collectionId);
                 return (
                   <div
                     key={rec.collectionId}
-                    className="flex items-center gap-3 rounded-xl border-2 border-zinc-950 bg-white p-2.5 transition shadow-[2px_2px_0px_#09090b] hover:shadow-[3px_3px_0px_#09090b] hover:-translate-y-0.5"
+                    className="flex items-center gap-3 rounded-xl border border-white/40 bg-white/40 p-2.5 transition-all shadow-[0_4px_12px_rgba(0,0,0,0.02)] hover:bg-white/60 hover:-translate-y-0.5"
                   >
                     <img
                       src={rec.artworkUrl100}
                       alt={rec.collectionName}
-                      className="h-12 w-12 shrink-0 rounded-lg border-2 border-zinc-950 object-cover"
+                      className="h-12 w-12 shrink-0 rounded-lg border border-white/50 object-cover shadow-sm"
                     />
                     <div className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate text-sm font-bold text-zinc-950">
@@ -256,10 +289,10 @@ function RecommendationsOverlay() {
                       <button
                         onClick={() => handleAdd(rec)}
                         disabled={isAdded}
-                        className={`shrink-0 rounded-lg border-2 border-zinc-950 p-1.5 transition cursor-pointer hover:-translate-y-0.5 active:translate-y-0.5 shadow-[1px_1px_0px_#09090b] active:shadow-none ${
+                        className={`shrink-0 rounded-xl p-1.5 transition-all cursor-pointer flex items-center justify-center ${
                           isAdded
-                            ? 'bg-emerald-400 text-zinc-950'
-                            : 'bg-white text-zinc-950 hover:bg-zinc-50'
+                            ? 'bg-emerald-500 text-white shadow-inner border border-emerald-500'
+                            : 'glass-btn text-zinc-800'
                         }`}
                         title={isAdded ? 'Added!' : 'Add to Room'}
                       >

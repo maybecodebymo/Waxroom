@@ -83,6 +83,7 @@ function AddAlbumModal() {
             id: safeTrackId(),
             title: track.title ?? '',
             category: ['hit', 'bop', 'meh'].includes(track.category) ? track.category : 'meh',
+            previewUrl: track.previewUrl ?? null,
           }))
         : [blankTrack()]
     );
@@ -208,6 +209,7 @@ function AddAlbumModal() {
           id: safeTrackId(),
           title: track.trackName,
           category: 'meh',
+          previewUrl: track.previewUrl || null,
         }));
 
       if (songs.length > 0) {
@@ -226,7 +228,7 @@ function AddAlbumModal() {
     if (!canSubmit) return;
 
     const tracklist = tracks
-      .map((track) => ({ title: track.title.trim(), category: track.category }))
+      .map((track) => ({ title: track.title.trim(), category: track.category, previewUrl: track.previewUrl || null }))
       .filter((track) => track.title.length > 0);
 
     const payload = {
@@ -276,21 +278,21 @@ function AddAlbumModal() {
         }}
         className="glass max-h-[92vh] w-[min(95vw,820px)] overflow-y-auto rounded-2xl p-5 md:p-7 text-zinc-950"
       >
-          <div className="mb-5 flex items-center justify-between border-b-2 border-zinc-950 pb-3">
-            <h2 className="font-display text-xl uppercase tracking-wider">
+          <div className="mb-5 flex items-center justify-between border-b border-white/20 pb-3">
+            <h2 className="font-display text-xl uppercase tracking-wider text-zinc-900">
               {editingAlbumId ? 'Edit Record' : 'Add New Record'}
             </h2>
             <button
               type="button"
               onClick={closeAlbumModal}
-              className="rounded-lg border-2 border-zinc-950 bg-white p-1 text-zinc-950 hover:bg-zinc-100 active:translate-y-0.5 cursor-pointer"
+              className="rounded-full glass-btn p-1.5 text-zinc-800 cursor-pointer flex items-center justify-center"
             >
               <X size={16} />
             </button>
           </div>
 
           <div className="relative mb-6">
-            <div className="flex gap-2.5 rounded-xl border-2 border-zinc-950 bg-zinc-50 p-3 shadow-[2px_2px_0px_#09090b]">
+            <div className="flex gap-2.5 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
                 <input
@@ -298,23 +300,23 @@ function AddAlbumModal() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search iTunes to auto-fill..."
-                  className="w-full rounded-lg border-2 border-zinc-950 bg-white py-2 pl-9 pr-3 text-sm outline-none"
+                  className="w-full rounded-lg border border-white/50 bg-white/80 py-2 pl-9 pr-3 text-sm outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
                 />
                 {isSearching && (
-                  <div className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin rounded-full border-2 border-zinc-950 border-t-transparent" />
+                  <div className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin rounded-full border border-orange-500 border-t-transparent" />
                 )}
               </div>
             </div>
 
             {searchResults.length > 0 && (
-              <ul className="absolute z-10 mt-1.5 max-h-[250px] w-full overflow-y-auto rounded-xl border-2 border-zinc-950 bg-white shadow-[4px_4px_0px_#09090b]">
+              <ul className="absolute z-10 mt-1.5 max-h-[250px] w-full overflow-y-auto rounded-xl border border-white/60 bg-white/95 backdrop-blur-md shadow-[0_12px_30px_rgba(0,0,0,0.15)]">
                 {searchResults.map((album) => (
                   <li
                     key={album.collectionId}
                     onClick={() => selectAlbumSuggestion(album)}
-                    className="flex cursor-pointer items-center gap-3 border-b-2 border-zinc-950 p-3 px-4 transition-colors last:border-0 hover:bg-zinc-50 text-zinc-950"
+                    className="flex cursor-pointer items-center gap-3 border-b border-zinc-200/50 p-3 px-4 transition-colors last:border-0 hover:bg-orange-500/10 text-zinc-950"
                   >
-                    <img src={album.artworkUrl60} alt={album.collectionName} className="h-10 w-10 shrink-0 rounded-lg border-2 border-zinc-950 object-cover" />
+                    <img src={album.artworkUrl60} alt={album.collectionName} className="h-10 w-10 shrink-0 rounded-lg border border-white/50 object-cover shadow-sm" />
                     <div className="flex flex-col overflow-hidden">
                       <span className="truncate text-sm font-bold text-zinc-950">{album.collectionName}</span>
                       <span className="truncate text-xs text-zinc-500">{album.artistName}</span>
@@ -327,33 +329,33 @@ function AddAlbumModal() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="grid gap-1.5">
-              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-600">Artist</span>
+              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-650">Artist</span>
               <input
                 required
                 value={artist}
                 onChange={(event) => setArtist(event.target.value)}
-                className="w-full rounded-lg border-2 border-zinc-950 bg-white px-3 py-2 outline-none"
+                className="w-full rounded-lg border border-white/50 bg-white/80 px-3 py-2 outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
               />
             </label>
 
             <label className="grid gap-1.5">
-              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-600">Album Title</span>
+              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-650">Album Title</span>
               <input
                 required
                 value={albumTitle}
                 onChange={(event) => setAlbumTitle(event.target.value)}
-                className="w-full rounded-lg border-2 border-zinc-950 bg-white px-3 py-2 outline-none"
+                className="w-full rounded-lg border border-white/50 bg-white/80 px-3 py-2 outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
               />
             </label>
 
             <label className="grid gap-1.5">
-              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-600">Genre (creatable)</span>
+              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-650">Genre (creatable)</span>
               <input
                 list="genre-list"
                 required
                 value={genre}
                 onChange={(event) => setGenre(event.target.value)}
-                className="w-full rounded-lg border-2 border-zinc-950 bg-white px-3 py-2 outline-none"
+                className="w-full rounded-lg border border-white/50 bg-white/80 px-3 py-2 outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
               />
               <datalist id="genre-list">
                 {genres.map((item) => (
@@ -363,7 +365,7 @@ function AddAlbumModal() {
             </label>
 
             <label className="grid gap-1.5">
-              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-600">Rating: {Number(rating).toFixed(1)}</span>
+              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-650">Rating: {Number(rating).toFixed(1)}</span>
               <div className="py-2.5">
                 <input
                   type="range"
@@ -384,35 +386,35 @@ function AddAlbumModal() {
           </div>
 
           <label className="mt-4 grid gap-1.5">
-            <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-600">Description</span>
+            <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-650">Description</span>
             <textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               rows={3}
-              className="w-full rounded-lg border-2 border-zinc-950 bg-white px-3 py-2 outline-none"
+              className="w-full rounded-lg border border-white/50 bg-white/80 px-3 py-2 outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
             />
           </label>
 
           <div className="mt-4 grid gap-2">
-            <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-600">Album Cover Upload</span>
+            <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-650">Album Cover Upload</span>
             <input 
               type="file" 
               accept="image/*" 
               onChange={handleImageUpload} 
-              className="rounded-lg border-2 border-zinc-950 bg-white p-2 text-xs font-display font-bold cursor-pointer" 
+              className="rounded-lg border border-white/50 bg-white/80 p-2 text-xs font-display font-bold cursor-pointer hover:bg-white transition-all" 
             />
             <p className="text-[10px] font-display font-bold text-zinc-500 uppercase">
               {isProcessing ? 'Generating circular CD texture...' : textureUrl ? 'Texture generated and ready.' : 'Upload an image to generate CD texture.'}
             </p>
           </div>
 
-          <div className="mt-5 rounded-xl border-2 border-zinc-950 bg-zinc-50 p-3.5 shadow-[2px_2px_0px_#09090b]">
+          <div className="mt-5 rounded-xl border border-white/40 bg-white/40 p-3.5 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-600">Tracklist Builder</p>
+              <p className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-650">Tracklist Builder</p>
               <button
                 type="button"
                 onClick={addTrackRow}
-                className="inline-flex items-center gap-1 rounded-lg border-2 border-zinc-950 bg-white px-3 py-1 text-xs font-display font-bold hover:bg-zinc-100 active:translate-y-0.5 shadow-[1px_1px_0px_#09090b] active:shadow-none cursor-pointer"
+                className="inline-flex items-center gap-1 rounded-xl px-3.5 py-1.5 text-xs font-display font-bold transition-all glass-btn cursor-pointer"
               >
                 <Plus size={12} /> Add Track
               </button>
@@ -420,13 +422,13 @@ function AddAlbumModal() {
 
             <div className="grid gap-2.5 max-h-[35vh] overflow-y-auto pr-1">
               {tracks.map((track, index) => (
-                <div key={track.id} className="grid gap-2 rounded-lg border-2 border-zinc-950 bg-white p-2.5 md:grid-cols-[auto_1fr_auto_auto]">
+                <div key={track.id} className="grid gap-2 rounded-xl border border-white/40 bg-white/40 p-2.5 md:grid-cols-[auto_1fr_auto_auto] shadow-[0_4px_12px_rgba(0,0,0,0.01)]">
                   <div className="flex flex-row items-center gap-1 md:flex-col">
                     <button
                       type="button"
                       onClick={() => moveTrack(index, -1)}
                       disabled={index === 0}
-                      className="rounded-lg border-2 border-zinc-950 bg-white p-0.5 text-zinc-950 transition hover:bg-zinc-100 active:translate-y-0.5 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                      className="rounded-lg glass-btn p-1 text-zinc-800 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer flex items-center justify-center"
                       aria-label="Move track up"
                     >
                       <ChevronUp size={12} />
@@ -435,7 +437,7 @@ function AddAlbumModal() {
                       type="button"
                       onClick={() => moveTrack(index, 1)}
                       disabled={index === tracks.length - 1}
-                      className="rounded-lg border-2 border-zinc-950 bg-white p-0.5 text-zinc-950 transition hover:bg-zinc-100 active:translate-y-0.5 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                      className="rounded-lg glass-btn p-1 text-zinc-800 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer flex items-center justify-center"
                       aria-label="Move track down"
                     >
                       <ChevronDown size={12} />
@@ -446,15 +448,17 @@ function AddAlbumModal() {
                     value={track.title}
                     onChange={(event) => updateTrack(track.id, 'title', event.target.value)}
                     placeholder={`Track ${index + 1} title`}
-                    className="w-full rounded-lg border-2 border-zinc-950 bg-white px-2.5 py-1.5 text-sm outline-none"
+                    className="w-full rounded-lg border border-white/50 bg-white/80 px-2.5 py-1.5 text-sm outline-none focus:bg-white focus:border-orange-500 transition-all"
                   />
 
                   <div className="flex items-center justify-center">
                     <button
                       type="button"
                       onClick={() => updateTrack(track.id, 'category', track.category === 'hit' ? 'meh' : 'hit')}
-                      className={`group flex items-center justify-center rounded-lg border-2 border-zinc-950 p-1.5 transition-all cursor-pointer ${
-                        track.category === 'hit' ? 'bg-orange-400 text-zinc-950 shadow-none' : 'bg-white text-zinc-400 hover:text-zinc-950 hover:bg-zinc-50'
+                      className={`group flex items-center justify-center rounded-xl p-1.5 transition-all cursor-pointer ${
+                        track.category === 'hit'
+                          ? 'bg-orange-500 text-white shadow-inner border border-orange-500'
+                          : 'glass-btn text-zinc-500 hover:text-zinc-850'
                       }`}
                       title={track.category === 'hit' ? 'Remove from Favorites' : 'Mark as Favorite'}
                     >
@@ -466,7 +470,7 @@ function AddAlbumModal() {
                     type="button"
                     onClick={() => removeTrackRow(track.id)}
                     disabled={tracks.length === 1}
-                    className="rounded-lg border-2 border-zinc-950 bg-white px-2.5 py-1.5 text-zinc-950 hover:bg-zinc-50 active:translate-y-0.5 disabled:opacity-30 disabled:pointer-events-none cursor-pointer flex items-center justify-center"
+                    className="rounded-xl glass-btn px-2.5 py-1.5 text-red-500 hover:text-red-750 hover:bg-red-50/50 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer flex items-center justify-center"
                   >
                     <Trash2 size={12} />
                   </button>
@@ -479,7 +483,7 @@ function AddAlbumModal() {
             <button
               type="submit"
               disabled={!canSubmit}
-              className="rounded-xl border-2 border-zinc-950 bg-orange-400 px-5 py-2 text-xs font-display font-bold uppercase tracking-wider text-zinc-950 hover:bg-orange-500 shadow-[2px_2px_0px_#09090b] hover:shadow-[3px_3px_0px_#09090b] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+              className="rounded-xl bg-orange-500 hover:bg-orange-600 px-5 py-2 text-xs font-display font-bold uppercase tracking-wider text-white shadow-[0_4px_12px_rgba(234,88,12,0.2)] transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none active:scale-95"
             >
               {editingAlbumId ? 'Save Changes' : 'Add Album'}
             </button>

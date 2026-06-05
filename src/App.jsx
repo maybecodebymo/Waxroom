@@ -17,6 +17,19 @@ const fadeIn = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.2, 0.85, 0.25, 1] } },
 };
 
+const formatRoomName = (name) => {
+  if (!name) return "";
+  const lower = name.toLowerCase();
+  if (lower.endsWith("'s room")) return name;
+  if (lower.endsWith(' room')) {
+    const base = name.substring(0, name.length - 5).trim();
+    return base.endsWith("'s") ? `${base} Room` : `${base}'s Room`;
+  }
+  if (name.endsWith("'s")) return `${name} Room`;
+  if (name.endsWith("'")) return `${name}s Room`;
+  return `${name}'s Room`;
+};
+
 function App() {
   const isAddModalOpen = useGalleryStore((state) => state.isAddModalOpen);
   const canEditAlbums = useGalleryStore((state) => state.canEditAlbums);
@@ -37,6 +50,42 @@ function App() {
       setAddModalOpen(false);
     }
   }, [canEditAlbums, isAddModalOpen, setAddModalOpen]);
+
+  // Dynamic SEO and Title Updates
+  useEffect(() => {
+    let title = "Waxroom — 3D Music Space";
+    let description = "Build, explore, and share your music collection in an interactive 3D vinyl globe. Sync from Last.fm, discover new albums, and share your room with friends.";
+    
+    if (isViewingShared && sharedOwnerName) {
+      const roomName = formatRoomName(sharedOwnerName);
+      title = `${roomName} | Waxroom`;
+      description = `Explore ${roomName}'s curated 3D vinyl record vault on Waxroom. Sync, play, and discover music.`;
+    } else if (vaultName) {
+      const roomName = formatRoomName(vaultName);
+      title = `${roomName} | Waxroom`;
+      description = `Explore ${roomName}'s curated 3D vinyl record vault on Waxroom. Sync, play, and discover music.`;
+    }
+
+    document.title = title;
+    
+    // Update Meta Description
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) metaDescription.setAttribute('content', description);
+    
+    // Update OG Meta Tags
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute('content', title);
+    
+    const ogDescription = document.querySelector('meta[property="og:description"]');
+    if (ogDescription) ogDescription.setAttribute('content', description);
+    
+    // Update Twitter Meta Tags
+    const twitterTitle = document.querySelector('meta[name="twitter:title"]');
+    if (twitterTitle) twitterTitle.setAttribute('content', title);
+    
+    const twitterDescription = document.querySelector('meta[name="twitter:description"]');
+    if (twitterDescription) twitterDescription.setAttribute('content', description);
+  }, [isViewingShared, sharedOwnerName, vaultName]);
 
   // Dismiss the HTML loading screen once React is mounted
   useEffect(() => {
@@ -87,8 +136,8 @@ function App() {
       >
         <p className="font-display text-xs sm:text-sm md:text-2xl tracking-wide text-zinc-950 uppercase">
           {isViewingShared
-            ? (sharedOwnerName.endsWith('Room') ? sharedOwnerName : `${sharedOwnerName}'s Room`)
-            : (vaultName ? `${vaultName} Room` : "Mo's Room")}
+            ? formatRoomName(sharedOwnerName)
+            : formatRoomName(vaultName)}
         </p>
         {isViewingShared && (
           <button

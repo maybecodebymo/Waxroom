@@ -24,67 +24,113 @@ body {
 }
 
 .glass {
-  background: #ffffff;
-  border: 2px solid #09090b;
-  box-shadow: 4px 4px 0px 0px #09090b;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 
+    0 4px 30px rgba(0, 0, 0, 0.02),
+    0 1px 0px rgba(255, 255, 255, 0.15) inset,
+    0 12px 40px rgba(0, 0, 0, 0.04);
 }
 
-/* Tactile brutalist inputs */
+/* Glass Buttons */
+.glass-btn {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-btn:hover {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+.glass-btn:active {
+  background: rgba(255, 255, 255, 0.55);
+  transform: scale(0.97);
+}
+.glass-btn-active {
+  background: #ea580c;
+  color: #ffffff;
+  border-color: #ea580c;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+/* Sleek Glass Inputs */
 input[type="text"], textarea {
-  border: 2px solid #09090b;
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 2px 2px 0px 0px #09090b;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: none;
   font-family: 'Space Mono', monospace;
-  transition: all 0.15s ease-out;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 8px 12px;
 }
 input[type="text"]:focus, textarea:focus {
   outline: none;
-  box-shadow: 2px 2px 0px 0px #f97316; /* Orange */
+  border-color: #ea580c;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
 }
 
-/* Custom brutalist range sliders */
+/* Custom Apple Glass Sliders */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
-  background: #e4e4e7;
-  height: 6px;
-  border: 1px solid #09090b;
+  background: rgba(0, 0, 0, 0.06);
+  height: 5px;
+  border-radius: 10px;
   outline: none;
+  margin: 10px 0;
+  border: none;
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 12px;
-  height: 18px;
-  background: #f97316; /* Orange */
-  border: 2px solid #09090b;
-  cursor: ew-resize;
-  box-shadow: 1px 1px 0px #09090b;
-  border-radius: 2px;
+  width: 16px;
+  height: 16px;
+  background: #ea580c; /* Orange */
+  border: 2px solid #ffffff;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+  border-radius: 50%;
+  transition: transform 0.1s ease;
+}
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(1.15);
 }
 input[type="range"]::-moz-range-thumb {
-  width: 12px;
-  height: 18px;
-  background: #f97316;
-  border: 2px solid #09090b;
-  cursor: ew-resize;
-  box-shadow: 1px 1px 0px #09090b;
-  border-radius: 2px;
+  width: 16px;
+  height: 16px;
+  background: #ea580c;
+  border: 2px solid #ffffff;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+  border-radius: 50%;
+  transition: transform 0.1s ease;
+}
+input[type="range"]::-moz-range-thumb:active {
+  transform: scale(1.15);
 }
 
-/* Stark Brutalist Scrollbars */
+/* Minimalist Premium Scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f5f5f4;
-  border-left: 2px solid #09090b;
-  border-top: 2px solid #09090b;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #09090b;
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
 }

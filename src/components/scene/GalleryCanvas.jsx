@@ -1,7 +1,7 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import { useGesture } from '@use-gesture/react';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import * as THREE from 'three';
 import AlbumDisc from './AlbumDisc';
 import { useGalleryStore } from '../../store/useGalleryStore';
@@ -10,8 +10,12 @@ const defaultLookAt = new THREE.Vector3(0, 0.1, 0);
 const discRadius = 0.88;
 
 const createGlobeLayout = (albumIds, controls) => {
-  const radius = controls.globeRadius;
-  const vertical = controls.globeHeight;
+  // Apply dynamic physical morphing based on camera zoomOut offset (-8 to 8)
+  const zoom = controls.zoomOut;
+  const radius = controls.globeRadius * (1 - zoom * 0.045);
+  const vertical = controls.globeHeight * (1 - zoom * 0.08);
+  const tilt = controls.tiltFactor * (1 - zoom * 0.035);
+
   const count = Math.max(1, albumIds.length);
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
   const map = new Map();
@@ -28,7 +32,7 @@ const createGlobeLayout = (albumIds, controls) => {
     map.set(id, {
       position: [x, y, z],
       rotationY: Math.atan2(x, z),
-      rotationX: -ySphere * controls.tiltFactor,
+      rotationX: -ySphere * tilt,
       scale: 1,
     });
   });
@@ -42,11 +46,24 @@ function GalleryScene() {
   const selectedAlbumId = useGalleryStore((state) => state.selectedAlbumId);
   const selectAlbum = useGalleryStore((state) => state.selectAlbum);
   const controls = useGalleryStore((state) => state.sceneControls);
+  const activeBgColor = useGalleryStore((state) => state.activeBgColor);
+  const setSceneControl = useGalleryStore((state) => state.setSceneControl);
   const { camera, gl } = useThree();
   const groupRef = useRef(null);
   const rotationRef = useRef(0);
   const targetRotationRef = useRef(0);
   const baseRotationRef = useRef(0);
+  const targetBgColor = useRef(new THREE.Color('#f5f5f4'));
+
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const visibleAlbums = useMemo(
     () => albums.filter((album) => activeGenre === 'All' || album.genre === activeGenre),
@@ -77,7 +94,6 @@ function GalleryScene() {
   useGesture(
     {
       onDrag: ({ movement: [mx] }) => {
-        const isMobile = window.innerWidth < 768;
         const speedMultiplier = isMobile ? 1.6 : 1.0;
         targetRotationRef.current = baseRotationRef.current + mx * controls.dragSpeed * speedMultiplier;
       },
@@ -91,13 +107,22 @@ function GalleryScene() {
         targetRotationRef.current -= (dx + dy) * controls.dragSpeed * 0.5;
         baseRotationRef.current = targetRotationRef.current;
       },
+      onPinch: ({ delta: [d], event }) => {
+        if (event && event.cancelable) {
+          event.preventDefault();
+        }
+        // Two-finger pinch on trackpads / touch mobile screens changes the zoomOut factor
+        const change = -d * 6.0;
+        const currentZoom = useGalleryStore.getState().sceneControls.zoomOut;
+        const nextZoom = Math.max(-8, Math.min(8, currentZoom + change));
+        setSceneControl('zoomOut', nextZoom);
+      }
     },
     {
       target: gl.domElement,
       eventOptions: { passive: false },
       drag: {
         from: () => {
-          const isMobile = window.innerWidth < 768;
           const speedMultiplier = isMobile ? 1.6 : 1.0;
           return [(targetRotationRef.current - baseRotationRef.current) / (controls.dragSpeed * speedMultiplier), 0];
         },
@@ -105,11 +130,14 @@ function GalleryScene() {
       },
       wheel: {
         eventOptions: { passive: false }
+      },
+      pinch: {
+        eventOptions: { passive: false }
       }
     }
   );
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     rotationRef.current = THREE.MathUtils.damp(
       rotationRef.current,
       targetRotationRef.current,
@@ -130,14 +158,12 @@ function GalleryScene() {
         }
       : null;
 
-    const isMobile = window.innerWidth < 768;
-
     const cameraTarget = selectedAlbumId
-      ? (isMobile ? new THREE.Vector3(0, 2.1, 4.8) : new THREE.Vector3(1.2, 0.6, 4.2))
-      : new THREE.Vector3(0, 1.2, gridFitDistance + controls.zoomOut + (isMobile ? 2.5 : 0));
+      ? (isMobile ? new THREE.Vector3(0, 3.2, 5.2) : new THREE.Vector3(1.2, 0.6, 4.2))
+      : new THREE.Vector3(0, 1.2, gridFitDistance + controls.zoomOut);
 
     const lookAtTarget = selectedAlbumId
-      ? (isMobile ? new THREE.Vector3(0, 1.4, 0) : new THREE.Vector3(1.2, 0.6, 0))
+      ? (isMobile ? new THREE.Vector3(0, 2.8, 0) : new THREE.Vector3(1.2, 0.6, 0))
       : defaultLookAt;
 
     camera.position.lerp(cameraTarget, controls.camDamp);
@@ -145,6 +171,30 @@ function GalleryScene() {
 
     if (groupRef.current) {
       groupRef.current.rotation.y = rotationRef.current;
+
+      // Centrifugal flattening physics (group stretches horizontally, squashes vertically when spun)
+      // Disabled when an album is selected to keep artwork undistorted
+      const hasSelection = Boolean(selectedAlbumId);
+      const targetStretch = hasSelection ? 0 : Math.abs(rotationRef.current - targetRotationRef.current) * 0.14;
+      const stretch = THREE.MathUtils.damp(
+        groupRef.current.scale.x - 1,
+        targetStretch,
+        4.5,
+        delta
+      );
+      groupRef.current.scale.set(1 + stretch, 1 - stretch * 0.35, 1 + stretch);
+    }
+
+    // Smooth background color lerp
+    try {
+      targetBgColor.current.set(activeBgColor);
+    } catch {
+      targetBgColor.current.set('#f5f5f4');
+    }
+    if (state.scene.background instanceof THREE.Color) {
+      state.scene.background.lerp(targetBgColor.current, 1 - Math.pow(0.005, delta));
+    } else {
+      state.scene.background = targetBgColor.current.clone();
     }
   });
 
@@ -155,7 +205,6 @@ function GalleryScene() {
       <directionalLight position={[2, 6, 5]} intensity={1.1} />
       <pointLight position={[-6, 3, 4]} intensity={0.6} />
       <Environment preset="city" />
-
       <group ref={groupRef}>
         {albums.map((album) => {
           const visibleTarget = layoutMap.get(album.id);
@@ -172,7 +221,7 @@ function GalleryScene() {
                   position: visibleTarget.position,
                   rotationY: visibleTarget.rotationY,
                   rotationX: visibleTarget.rotationX,
-                  scale: 0.8,
+                  scale: isMobile ? 0.48 : 0.8,
                 }
               : {
                   position: visibleTarget.position,

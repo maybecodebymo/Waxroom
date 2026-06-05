@@ -48,131 +48,96 @@
       }
       #loader .vinyl-wrapper {
         position: relative;
-        width: 120px;
-        height: 120px;
+        width: 180px;
+        height: 180px;
+        margin: 0 auto;
       }
       #loader .disc {
         position: absolute;
-        top: 20px;
-        left: 20px;
-        width: 80px;
-        height: 80px;
+        top: 0;
+        left: 0;
+        width: 180px;
+        height: 180px;
         border-radius: 50%;
-        background: radial-gradient(
-          circle,
-          transparent 0%,
-          transparent 4%,
-          #18181b 4.5%,
-          #18181b 7%,
-          #e11d48 7.5%,
-          #e11d48 28%,
-          #18181b 28.5%,
-          #27272a 34%,
-          #18181b 38%,
-          #2d2d30 42%,
-          #18181b 46%,
-          #27272a 50%,
-          #18181b 54%,
-          #2d2d30 58%,
-          #18181b 62%,
-          #27272a 66%,
-          #18181b 70%,
-          #2d2d30 74%,
-          #18181b 78%,
-          #27272a 82%,
-          #18181b 86%,
-          #2d2d30 90%,
-          #18181b 94%,
-          #27272a 98%,
-          #18181b 100%
-        );
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.25);
-        animation: spin 2s linear infinite;
+        background: 
+          /* Gloss sheen overlay (rotates with disc) */
+          conic-gradient(
+            from 0deg, 
+            rgba(255, 255, 255, 0) 0deg, 
+            rgba(255, 255, 255, 0.08) 25deg, 
+            rgba(255, 255, 255, 0) 50deg, 
+            rgba(255, 255, 255, 0) 180deg, 
+            rgba(255, 255, 255, 0.08) 205deg, 
+            rgba(255, 255, 255, 0) 230deg, 
+            rgba(255, 255, 255, 0) 360deg
+          ),
+          /* Concentric vinyl layers (rim, grooves, run-out) */
+          radial-gradient(
+            circle at center,
+            transparent 0%,
+            transparent 36%,     /* Cover for label area */
+            #16161a 36.5%,       /* Run-out groove starts */
+            #0d0d10 39%,
+            #16161a 41%,         /* Run-out groove ends */
+            transparent 41.5%,
+            transparent 96%,     /* Grooves end */
+            #0d0d10 96.5%,       /* Outer rim starts */
+            #16161a 100%         /* Outer rim ends */
+          ),
+          /* Repeating grooves texture inside the grooved area */
+          repeating-radial-gradient(
+            circle at center, 
+            #121216 0px, 
+            #121216 1.5px, 
+            #22222a 2.5px, 
+            #121216 3px
+          );
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3), inset 0 0 10px rgba(255, 255, 255, 0.05);
+        animation: spin 3s linear infinite;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
-      #loader .disc::after {
-        content: '';
+      #loader .label {
         position: absolute;
-        top: 50%;
-        left: 50%;
+        width: 66px;
+        height: 66px;
+        border-radius: 50%;
+        background: #ea580c;
+        border: 2px solid #0d0d10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-shadow: inset 0 0 8px rgba(0,0,0,0.4);
+      }
+      #loader .label-brand {
+        font-family: monospace, system-ui;
+        font-size: 8px;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: 0.1em;
+        margin-bottom: 2px;
+        text-transform: uppercase;
+        pointer-events: none;
+      }
+      #loader .label-detail {
+        font-family: system-ui, sans-serif;
+        font-size: 5px;
+        color: rgba(255, 255, 255, 0.85);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 3px;
+        pointer-events: none;
+      }
+      #loader .label-hole {
         width: 6px;
         height: 6px;
         background: #f4f4f2;
         border-radius: 50%;
-        transform: translate(-50%, -50%);
-        box-shadow: inset 0 1px 1px rgba(0,0,0,0.4);
-      }
-      #loader .shine {
-        position: absolute;
-        top: 20px;
-        left: 20px;
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        background: conic-gradient(
-          from 45deg,
-          transparent 0deg,
-          rgba(255, 255, 255, 0.12) 30deg,
-          transparent 60deg,
-          transparent 180deg,
-          rgba(255, 255, 255, 0.12) 210deg,
-          transparent 240deg,
-          transparent 360deg
-        );
+        border: 1px solid rgba(0,0,0,0.6);
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
         pointer-events: none;
-      }
-      #loader .tonearm {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        width: 50px;
-        height: 70px;
-        pointer-events: none;
-        transform-origin: 38px 12px;
-        animation: playArm 6s ease-in-out infinite alternate;
-        z-index: 10;
-      }
-      #loader .tonearm-base {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 24px;
-        height: 24px;
-        background: radial-gradient(circle, #f4f4f5 20%, #a1a1aa 60%, #3f3f46 100%);
-        border-radius: 50%;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-      }
-      #loader .tonearm-base::before {
-        content: '';
-        position: absolute;
-        top: 8px;
-        left: -12px;
-        width: 14px;
-        height: 8px;
-        background: #27272a;
-        border-radius: 2px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-      }
-      #loader .tonearm-rod {
-        position: absolute;
-        top: 12px;
-        right: 11px;
-        width: 3px;
-        height: 48px;
-        background: linear-gradient(to bottom, #d4d4d8, #71717a);
-        border-radius: 2px;
-        transform-origin: top center;
-        transform: rotate(-30deg);
-      }
-      #loader .tonearm-head {
-        position: absolute;
-        bottom: 12px;
-        left: 2px;
-        width: 8px;
-        height: 14px;
-        background: #18181b;
-        border-radius: 1px 1px 3px 3px;
-        transform: rotate(-10deg);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
       }
       #loader p {
         margin-top: 20px;
@@ -185,26 +150,18 @@
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
-      @keyframes playArm {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(12deg);
-        }
-      }
     </style>
   </head>
   <body>
     <!-- Loading screen (removed by React on mount) -->
     <div id="loader">
       <div class="vinyl-wrapper">
-        <div class="disc"></div>
-        <div class="shine"></div>
-        <div class="tonearm">
-          <div class="tonearm-base"></div>
-          <div class="tonearm-rod"></div>
-          <div class="tonearm-head"></div>
+        <div class="disc">
+          <div class="label">
+            <div class="label-brand">WAXROOM</div>
+            <div class="label-detail">STEREO • 33 RPM</div>
+            <div class="label-hole"></div>
+          </div>
         </div>
       </div>
       <p>Loading Waxroom</p>

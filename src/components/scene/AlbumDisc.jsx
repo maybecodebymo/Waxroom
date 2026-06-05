@@ -36,7 +36,7 @@ function DiscMesh({ album, target, opacity = 1, isSelected, onSelect }) {
       
       const isMobile = window.innerWidth < 768;
       const worldX = isMobile ? 0.0 : 0.6;
-      const worldY = isMobile ? 1.5 : 0.5;
+      const worldY = isMobile ? 3.4 : 0.5;
       const worldZ = isMobile ? 2.2 : 2.0;
 
       const localX = worldX * Math.cos(-pRot) + worldZ * Math.sin(-pRot);
