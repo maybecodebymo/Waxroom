@@ -4,33 +4,34 @@ An interactive 3D music collection explorer. Browse albums as vinyl records orbi
 
 ## ✨ Features
 
-- **3D Vinyl Globe** — Albums float as vinyl discs in a golden-angle spiral, powered by React Three Fiber
-- **Drag & Explore** — Swipe to rotate the globe, click any disc to focus and spin
-- **Full CRUD** — Add, edit, rate, and remove albums with track-by-track listings
-- **Genre Filtering** — Dynamic filter bar with animated repositioning
-- **Last.fm Sync** — Import your listening history with one click
-- **Recommendations 🎲** — Smart discovery recommendations based on your collection's DNA
-- **Community Feed** — Publish your room or browse/visit other rooms in the timeline
-- **Zero Accounts** — Everything persists locally, no sign-up required
+- **3D Vinyl Globe** — Browse your albums as rotating vinyl discs in a golden-angle spiral, powered by React Three Fiber.
+- **Drag & Explore** — Drag to rotate the globe in 3D space, zoom in/out with your wheel/trackpad, or click any disc to focus, spin, and read its details.
+- **Full CRUD** — Build your room by adding records manually or searching the iTunes database, edit details, set ratings, and manage custom tracklists.
+- **Onboarding Journey** — A sleek, interactive welcome experience helping you customize your custom room identity and drop your first record.
+- **Genre Filtering** — Instantly filter your room by genre using the filter bar, causing the sphere to collapse and animate only matching vinyls.
+- **Last.fm Sync** — Sychronize your top albums directly from your Last.fm profile with a single click.
+- **Recommendations 🎲** — Smart discovery recommendation engine recommending music tailored specifically to your vault's genres and artists.
+- **Community Feed** — Publish your custom room to the community timeline, or browse, visit, and explore other users' 3D rooms.
+- **Zero Accounts** — Everything persists locally in your browser, no sign-up or accounts required.
 
 ## 🛠 Tech Stack
 
 | Layer | Tech |
 |-------|------|
-| 3D Engine | Three.js + React Three Fiber + Drei |
-| UI | React 18 + Framer Motion + Tailwind CSS 4 |
-| State | Zustand with localStorage persistence |
-| Gestures | @use-gesture/react |
-| APIs | iTunes Search API, Last.fm API |
-| Build | Vite 6 |
-| Deploy | GitHub Pages via GitHub Actions |
+| **3D Engine** | Three.js + React Three Fiber + Drei |
+| **UI** | React 18 + Framer Motion + Tailwind CSS 4 |
+| **State** | Zustand with localStorage persistence |
+| **Gestures** | @use-gesture/react |
+| **APIs** | iTunes Search API, Last.fm API |
+| **Build** | Vite 6 |
+| **Deploy** | GitHub Pages via GitHub Actions |
 
 ## 🚀 Getting Started
 
 ```bash
 # Clone
-git clone <your-repo-url>
-cd waxroom
+git clone https://github.com/maybecodebymo/Waxroom.git
+cd Waxroom
 
 # Install
 npm install
@@ -51,9 +52,9 @@ npm run preview
 This project auto-deploys to GitHub Pages via the included GitHub Actions workflow.
 
 **Setup:**
-1. Go to your repo → Settings → Pages → Source → **GitHub Actions**
-2. Go to Settings → Secrets → Actions → add `VITE_LASTFM_API_KEY`
-3. Push to `main` — the workflow builds and deploys automatically
+1. Go to your repo → **Settings** → **Pages** → **Build and deployment** → Set Source to **GitHub Actions**.
+2. Go to **Settings** → **Secrets and variables** → **Actions** → add `VITE_LASTFM_API_KEY` under repository secrets.
+3. Push your commits to `master` (or `main`) — the workflow builds and deploys the app automatically.
 
 ## 📁 Project Structure
 
@@ -61,19 +62,17 @@ This project auto-deploys to GitHub Pages via the included GitHub Actions workfl
 src/
 ├── App.jsx                          # Root layout + URL sharing logic
 ├── main.jsx                         # React entry point
-├── index.css                        # Global styles + Tailwind + glass utility
-├── data/
-│   ├── mockAlbums.js                # Default album collection
-│   └── mockRooms.js                 # Default rooms for community feed
-├── store/useGalleryStore.js         # Zustand state management
+├── index.css                        # Global styles + Tailwind config
+├── store/useGalleryStore.js         # Zustand state management & persistence
 ├── utils/lastFmService.js           # Last.fm API integration
 └── components/
     ├── scene/
     │   ├── GalleryCanvas.jsx        # R3F Canvas + globe layout engine
-    │   └── AlbumDisc.jsx            # Individual vinyl disc with GPU shader
+    │   ├── AlbumDisc.jsx            # Individual vinyl disc with custom shaders
+    │   └── PlayArm.jsx              # 3D turntable play-arm
     └── overlays/
         ├── AlbumDetailOverlay.jsx   # Album info + tracklist panel
-        ├── AddAlbumModal.jsx        # CRUD modal for albums
+        ├── AddAlbumModal.jsx        # CRUD modal for adding/editing albums
         ├── FilterBar.jsx            # Genre filter bar
         ├── SceneControlsOverlay.jsx # Scene tuning + Last.fm + sharing
         ├── RecommendationsOverlay.jsx # Discovery engine
