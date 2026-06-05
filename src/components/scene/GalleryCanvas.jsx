@@ -53,7 +53,7 @@ function GalleryScene() {
   const rotationRef = useRef(0);
   const targetRotationRef = useRef(0);
   const baseRotationRef = useRef(0);
-  const targetBgColor = useRef(new THREE.Color('#f5f5f4'));
+  const targetBgColor = useRef(new THREE.Color('#f5f5f3'));
 
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 768 : false
@@ -189,7 +189,7 @@ function GalleryScene() {
     try {
       targetBgColor.current.set(activeBgColor);
     } catch {
-      targetBgColor.current.set('#f5f5f4');
+      targetBgColor.current.set('#f5f5f3');
     }
     if (state.scene.background instanceof THREE.Color) {
       state.scene.background.lerp(targetBgColor.current, 1 - Math.pow(0.005, delta));
@@ -200,7 +200,7 @@ function GalleryScene() {
 
   return (
     <>
-      <color attach="background" args={['#f5f5f4']} />
+      <color attach="background" args={['#f5f5f3']} />
       <ambientLight intensity={0.9} />
       <directionalLight position={[2, 6, 5]} intensity={1.1} />
       <pointLight position={[-6, 3, 4]} intensity={0.6} />

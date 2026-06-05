@@ -65,7 +65,7 @@ export const useGalleryStore = create(
       toggleEditMode: () => set((state) => ({ canEditAlbums: !state.canEditAlbums })),
       activeTrack: null,
       isPlaying: false,
-      activeBgColor: '#f5f5f4',
+      activeBgColor: '#f5f5f3',
       setActiveTrack: (track) => set({ activeTrack: track, isPlaying: !!track }),
       setPlaying: (isPlaying) => set({ isPlaying }),
       setActiveBgColor: (color) => set({ activeBgColor: color }),
@@ -75,7 +75,7 @@ export const useGalleryStore = create(
         if (!albumId) {
           nextState.activeTrack = null;
           nextState.isPlaying = false;
-          nextState.activeBgColor = '#f5f5f4';
+          nextState.activeBgColor = '#f5f5f3';
         }
         return nextState;
       }),

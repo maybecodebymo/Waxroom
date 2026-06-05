@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Waxroom — 3D Music Space</title>
     <meta name="description" content="Build, explore, and share your music collection in an interactive 3D vinyl globe. Sync from Last.fm, discover new albums, and share your room with friends." />
-    <meta name="theme-color" content="#f4f4f2" />
+    <meta name="theme-color" content="#f5f5f3" />
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
@@ -23,10 +23,11 @@
     <meta name="twitter:title" content="Waxroom — 3D Music Space" />
     <meta name="twitter:description" content="Build, explore, and share your music collection in an interactive 3D vinyl globe." />
     <meta name="twitter:image" content="./og-preview.png" />
-
-    <!-- Preconnect to asset CDNs -->
+    <!-- Preconnect to asset CDNs and load brand fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap" rel="stylesheet" />
 
     <style>
       /* Branded loading screen — shown until React hydrates */
@@ -38,114 +39,38 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        background: #f4f4f2;
-        font-family: system-ui, -apple-system, sans-serif;
+        background: #f5f5f3;
+        font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
         transition: opacity 0.5s ease;
       }
       #loader.fade-out {
         opacity: 0;
         pointer-events: none;
       }
-      #loader .vinyl-wrapper {
+      #loader .logo-container {
         position: relative;
-        width: 180px;
-        height: 180px;
+        width: 140px;
+        height: 140px;
         margin: 0 auto;
-      }
-      #loader .disc {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 180px;
-        height: 180px;
-        border-radius: 50%;
-        background: 
-          /* Gloss sheen overlay (rotates with disc) */
-          conic-gradient(
-            from 0deg, 
-            rgba(255, 255, 255, 0) 0deg, 
-            rgba(255, 255, 255, 0.08) 25deg, 
-            rgba(255, 255, 255, 0) 50deg, 
-            rgba(255, 255, 255, 0) 180deg, 
-            rgba(255, 255, 255, 0.08) 205deg, 
-            rgba(255, 255, 255, 0) 230deg, 
-            rgba(255, 255, 255, 0) 360deg
-          ),
-          /* Concentric vinyl layers (rim, grooves, run-out) */
-          radial-gradient(
-            circle at center,
-            transparent 0%,
-            transparent 36%,     /* Cover for label area */
-            #16161a 36.5%,       /* Run-out groove starts */
-            #0d0d10 39%,
-            #16161a 41%,         /* Run-out groove ends */
-            transparent 41.5%,
-            transparent 96%,     /* Grooves end */
-            #0d0d10 96.5%,       /* Outer rim starts */
-            #16161a 100%         /* Outer rim ends */
-          ),
-          /* Repeating grooves texture inside the grooved area */
-          repeating-radial-gradient(
-            circle at center, 
-            #121216 0px, 
-            #121216 1.5px, 
-            #22222a 2.5px, 
-            #121216 3px
-          );
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3), inset 0 0 10px rgba(255, 255, 255, 0.05);
-        animation: spin 3s linear infinite;
         display: flex;
         align-items: center;
         justify-content: center;
       }
-      #loader .label {
-        position: absolute;
-        width: 66px;
-        height: 66px;
-        border-radius: 50%;
-        background: #ea580c;
-        border: 2px solid #0d0d10;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        box-shadow: inset 0 0 8px rgba(0,0,0,0.4);
-      }
-      #loader .label-brand {
-        font-family: monospace, system-ui;
-        font-size: 8px;
-        font-weight: 800;
-        color: #fff;
-        letter-spacing: 0.1em;
-        margin-bottom: 2px;
-        text-transform: uppercase;
-        pointer-events: none;
-      }
-      #loader .label-detail {
-        font-family: system-ui, sans-serif;
-        font-size: 5px;
-        color: rgba(255, 255, 255, 0.85);
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        margin-bottom: 3px;
-        pointer-events: none;
-      }
-      #loader .label-hole {
-        width: 6px;
-        height: 6px;
-        background: #f4f4f2;
-        border-radius: 50%;
-        border: 1px solid rgba(0,0,0,0.6);
-        box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
-        pointer-events: none;
+      #loader .logo-img {
+        width: 120px;
+        height: 120px;
+        animation: spin 6s linear infinite;
+        user-select: none;
+        -webkit-user-drag: none;
       }
       #loader p {
-        margin-top: 20px;
-        font-size: 10px;
-        letter-spacing: 0.3em;
+        margin-top: 24px;
+        font-family: 'Syne', sans-serif;
+        font-size: 11px;
+        letter-spacing: 0.25em;
         text-transform: uppercase;
-        color: #71717a;
-        font-weight: 600;
+        color: #000000;
+        font-weight: 800;
       }
       @keyframes spin {
         to { transform: rotate(360deg); }
@@ -155,14 +80,8 @@
   <body>
     <!-- Loading screen (removed by React on mount) -->
     <div id="loader">
-      <div class="vinyl-wrapper">
-        <div class="disc">
-          <div class="label">
-            <div class="label-brand">WAXROOM</div>
-            <div class="label-detail">STEREO • 33 RPM</div>
-            <div class="label-hole"></div>
-          </div>
-        </div>
+      <div class="logo-container">
+        <img src="./Waxroom black outline logo.svg" class="logo-img" alt="Waxroom" />
       </div>
       <p>Loading Waxroom</p>
     </div>

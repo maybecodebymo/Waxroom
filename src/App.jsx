@@ -122,11 +122,21 @@ function App() {
   }, [loadSharedRoom]);
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-[#fafaf9] text-zinc-950">
+    <main className="relative h-screen w-screen overflow-hidden bg-[#f5f5f3] text-zinc-950">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(0,0,0,0.02),transparent_42%),radial-gradient(circle_at_86%_78%,rgba(0,0,0,0.02),transparent_48%)]" />
       <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(20,20,20,0.05)_0.9px,transparent_0.9px)] [background-size:22px_22px]" />
 
       <GalleryCanvas />
+
+      {/* Top Middle Brand Logo */}
+      <div className="pointer-events-none absolute top-4 left-1/2 -translate-x-1/2 z-20 md:top-8 flex justify-center">
+        <img
+          src="/Waxroom main logo.svg"
+          className="h-9 md:h-12 w-auto opacity-70 select-none"
+          alt="Waxroom"
+          draggable="false"
+        />
+      </div>
 
       <motion.header
         variants={fadeIn}
