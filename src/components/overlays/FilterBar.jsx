@@ -19,6 +19,7 @@ function FilterBar() {
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -30,9 +31,10 @@ function FilterBar() {
   const showExpanded = !isCollapsed || (!hasCompletedTour && !isViewingShared);
 
   return (
-    <AnimatePresence>
-      {!selectedAlbumId && (
-        <div className="absolute bottom-5 left-1/2 z-30 -translate-x-1/2 pointer-events-none w-[min(94vw,860px)] md:bottom-8">
+    <>
+      <AnimatePresence>
+        {!selectedAlbumId && (
+          <div className="absolute bottom-5 left-1/2 z-30 -translate-x-1/2 pointer-events-none w-max max-w-[94vw] md:bottom-8">
           <AnimatePresence mode="wait">
             {!showExpanded ? (
               <motion.div
@@ -58,7 +60,7 @@ function FilterBar() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 24 }}
                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="w-full rounded-2xl p-2.5 glass pointer-events-auto shadow-[0_12px_40px_rgba(0,0,0,0.08)]"
+                className="w-max max-w-full rounded-2xl p-2.5 glass pointer-events-auto shadow-[0_12px_40px_rgba(0,0,0,0.08)]"
                 id="filter-bar-container"
               >
                 <div className="flex items-center gap-2 justify-between w-full">
@@ -73,24 +75,36 @@ function FilterBar() {
                     </button>
                   )}
 
-                  <div className="flex items-center gap-1.5 overflow-x-auto flex-1 px-1 py-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                    {genres.map((genre) => {
-                      const isActive = activeGenre === genre;
-                      return (
-                        <button
-                          key={genre}
-                          onClick={() => setGenre(genre)}
-                          className={`shrink-0 rounded-xl px-3.5 py-1.5 text-xs font-display font-bold uppercase tracking-wider transition-all cursor-pointer glass-btn ${
-                            isActive
-                              ? 'glass-btn-active font-extrabold'
-                              : 'text-zinc-800'
-                          }`}
-                        >
-                          {genre}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {isMobile ? (
+                    <button
+                      onClick={() => setIsMobileMenuOpen(true)}
+                      className={`shrink-0 rounded-xl px-3.5 py-1.5 text-xs font-display font-bold uppercase tracking-wider transition-all cursor-pointer glass-btn flex items-center gap-1.5 ${
+                        activeGenre !== 'All' ? 'glass-btn-active font-extrabold' : 'text-zinc-800'
+                      }`}
+                    >
+                      <Filter size={12} className={activeGenre !== 'All' ? 'text-white' : 'text-zinc-500'} />
+                      <span>{activeGenre === 'All' ? 'Genre' : activeGenre}</span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-1.5 overflow-x-auto flex-1 px-1 py-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                      {genres.map((genre) => {
+                        const isActive = activeGenre === genre;
+                        return (
+                          <button
+                            key={genre}
+                            onClick={() => setGenre(genre)}
+                            className={`shrink-0 rounded-xl px-3.5 py-1.5 text-xs font-display font-bold uppercase tracking-wider transition-all cursor-pointer glass-btn ${
+                              isActive
+                                ? 'glass-btn-active font-extrabold'
+                                : 'text-zinc-800'
+                            }`}
+                          >
+                            {genre}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   <div id="bottom-actions" className="flex items-center gap-1.5 shrink-0">
                     <button
@@ -136,6 +150,60 @@ function FilterBar() {
         </div>
       )}
     </AnimatePresence>
+
+    {/* Mobile Rise Up Genre Filter Menu */}
+    <AnimatePresence>
+      {isMobile && isMobileMenuOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 z-40 bg-zinc-950/20 backdrop-blur-sm pointer-events-auto"
+          />
+          <motion.div
+            initial={{ opacity: 0, y: 150, x: '-50%', scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, x: '-50%', scale: 1 }}
+            exit={{ opacity: 0, y: 150, x: '-50%', scale: 0.95 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+            className="fixed bottom-24 left-1/2 z-50 w-[min(90vw,320px)] rounded-2xl glass p-4 shadow-[0_24px_50px_rgba(0,0,0,0.15)] border border-white/60 flex flex-col gap-3 pointer-events-auto"
+          >
+            <div className="flex items-center justify-between border-b border-white/30 pb-2">
+              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-400">Select Genre</span>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-zinc-500 hover:text-zinc-850 text-[10px] font-display font-bold uppercase tracking-wider cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+            <div className="flex flex-col gap-1.5 max-h-[30vh] overflow-y-auto pr-1">
+              {genres.map((genre) => {
+                const isActive = activeGenre === genre;
+                return (
+                  <button
+                    key={genre}
+                    onClick={() => {
+                      setGenre(genre);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left rounded-xl px-4 py-2.5 text-xs font-display font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                      isActive
+                        ? 'glass-btn-active font-extrabold'
+                        : 'bg-white/50 border border-white/50 text-zinc-800 hover:bg-white/80'
+                    }`}
+                  >
+                    {genre}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  </>
   );
 }
 

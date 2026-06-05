@@ -144,7 +144,7 @@ function App() {
         animate="visible"
         className="pointer-events-none absolute left-4 top-4 z-20 md:left-10 md:top-10"
       >
-        <p className="font-display text-xs sm:text-sm md:text-2xl tracking-wide text-zinc-950 uppercase">
+        <p className="font-display text-lg sm:text-xl md:text-4xl tracking-wider text-zinc-950 uppercase font-extrabold">
           {isViewingShared
             ? formatRoomName(sharedOwnerName)
             : formatRoomName(vaultName)}
