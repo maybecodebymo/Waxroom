@@ -132,7 +132,7 @@ function App() {
       <div className="pointer-events-none absolute top-4 left-1/2 -translate-x-1/2 z-20 md:top-8 flex justify-center">
         <img
           src="/Waxroom main logo.svg"
-          className="h-9 md:h-12 w-auto opacity-70 select-none"
+          className="h-18 md:h-24 w-auto opacity-70 select-none"
           alt="Waxroom"
           draggable="false"
         />

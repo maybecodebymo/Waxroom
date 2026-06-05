@@ -300,7 +300,7 @@ function AddAlbumModal() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search iTunes to auto-fill..."
-                  className="w-full rounded-lg border border-white/50 bg-white/80 py-2 pl-9 pr-3 text-sm outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
+                  className="w-full rounded-lg border border-white/50 bg-white/80 py-2 !pl-10 pr-3 text-sm outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
                 />
                 {isSearching && (
                   <div className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin rounded-full border border-orange-500 border-t-transparent" />
