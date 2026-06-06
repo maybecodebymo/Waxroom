@@ -81,10 +81,11 @@ function SceneControlsOverlay() {
           {!showExpanded ? (
             <button
               onClick={() => setIsExpanded(true)}
-              className="flex h-11 w-11 items-center justify-center rounded-full glass cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-white/60 text-zinc-800 hover:text-zinc-950 transition-all active:scale-95"
+              className="flex h-10 px-3.5 items-center justify-center gap-1.5 rounded-full glass cursor-pointer shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-white/60 text-zinc-800 hover:text-zinc-950 transition-all active:scale-95 font-display text-[10px] font-bold uppercase tracking-wider"
               title="Open Menu"
             >
-              <Settings size={18} className="animate-[spin_40s_linear_infinite]" />
+              <Globe size={13} className="text-orange-500 animate-pulse" />
+              <span>Feed & Menu</span>
             </button>
           ) : (
             <>

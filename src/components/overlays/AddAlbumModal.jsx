@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { ChevronDown, ChevronUp, Plus, Trash2, X, Search, Star } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronDown, ChevronUp, Plus, Trash2, X, Search, Star, HelpCircle, ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { useGalleryStore } from '../../store/useGalleryStore';
 
 const safeTrackId = () => {
@@ -58,6 +58,36 @@ function AddAlbumModal() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+
+  useEffect(() => {
+    const hasSeen = localStorage.getItem('waxroom_modal_tour_seen');
+    if (hasSeen !== 'true') {
+      setShowTutorial(true);
+    }
+  }, []);
+
+  const dismissTutorial = () => {
+    setShowTutorial(false);
+    localStorage.setItem('waxroom_modal_tour_seen', 'true');
+  };
+
+  const tutorialSteps = [
+    {
+      title: "iTunes Auto-Fill (Recommended)",
+      content: "Type the name of any album in the search bar at the top. Selecting a match will automatically fill in the artist, album title, genre, cover art texture, and the full official tracklist for you!",
+    },
+    {
+      title: "Custom Record Upload",
+      content: "Want to add something custom or rare? Type the details manually and upload any image file. Our engine will automatically convert your image into a circular CD/vinyl texture for the 3D canvas!",
+    },
+    {
+      title: "Tracklist Builder",
+      content: "Use the Tracklist Builder at the bottom to write your track titles. You can reorder them using the up/down arrows, mark hits/favorites using the star, or remove tracks. Tap 'Add Track' to expand.",
+    }
+  ];
+
 
   useEffect(() => {
     if (!editingAlbum) {
@@ -279,9 +309,21 @@ function AddAlbumModal() {
         className="glass max-h-[92vh] w-[min(95vw,820px)] overflow-y-auto rounded-2xl p-5 md:p-7 text-zinc-950"
       >
           <div className="mb-5 flex items-center justify-between border-b border-white/20 pb-3">
-            <h2 className="font-display text-xl uppercase tracking-wider text-zinc-900">
-              {editingAlbumId ? 'Edit Record' : 'Add New Record'}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-display text-xl uppercase tracking-wider text-zinc-900">
+                {editingAlbumId ? 'Edit Record' : 'Add New Record'}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowTutorial((prev) => !prev)}
+                className={`rounded-full p-1.5 transition cursor-pointer flex items-center justify-center ${
+                  showTutorial ? 'bg-orange-500 text-white shadow-sm' : 'glass-btn text-zinc-700'
+                }`}
+                title="Toggle Onboarding Guide"
+              >
+                <HelpCircle size={15} />
+              </button>
+            </div>
             <button
               type="button"
               onClick={closeAlbumModal}
@@ -290,6 +332,89 @@ function AddAlbumModal() {
               <X size={16} />
             </button>
           </div>
+
+          <AnimatePresence>
+            {showTutorial && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                animate={{ opacity: 1, height: 'auto', marginBottom: 20 }}
+                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="overflow-hidden"
+              >
+                <div className="rounded-2xl border border-orange-250 bg-orange-50/40 backdrop-blur-md p-4 text-zinc-900 shadow-sm flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-display font-bold uppercase tracking-wider text-orange-600 flex items-center gap-1.5">
+                      <HelpCircle size={13} className="animate-pulse" />
+                      Guide: Step {tutorialStep + 1} of {tutorialSteps.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={dismissTutorial}
+                      className="text-[10px] font-display font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-700 transition cursor-pointer"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                  
+                  <div className="flex flex-col gap-1">
+                    <h4 className="text-xs font-bold text-zinc-950 font-display uppercase tracking-wide">
+                      {tutorialSteps[tutorialStep].title}
+                    </h4>
+                    <p className="text-xs text-zinc-700 font-body leading-relaxed">
+                      {tutorialSteps[tutorialStep].content}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-1 pt-2 border-t border-orange-200/40">
+                    {/* Dots indicator */}
+                    <div className="flex gap-1.5">
+                      {tutorialSteps.map((_, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setTutorialStep(i)}
+                          className={`h-1.5 w-1.5 rounded-full transition-all ${
+                            i === tutorialStep ? 'w-3.5 bg-orange-500' : 'bg-zinc-300'
+                          }`}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Next/Back/Finish buttons */}
+                    <div className="flex gap-1.5">
+                      {tutorialStep > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setTutorialStep((prev) => prev - 1)}
+                          className="inline-flex items-center justify-center p-1.5 rounded-lg border border-zinc-200 bg-white/70 hover:bg-white text-zinc-650 transition cursor-pointer shadow-sm"
+                        >
+                          <ArrowLeft size={11} />
+                        </button>
+                      )}
+                      {tutorialStep < tutorialSteps.length - 1 ? (
+                        <button
+                          type="button"
+                          onClick={() => setTutorialStep((prev) => prev + 1)}
+                          className="inline-flex items-center justify-center gap-1 bg-zinc-900 text-zinc-100 hover:bg-zinc-800 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-sm transition cursor-pointer"
+                        >
+                          Next <ArrowRight size={10} />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={dismissTutorial}
+                          className="inline-flex items-center justify-center gap-1 bg-orange-500 text-white hover:bg-orange-600 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-md transition cursor-pointer"
+                        >
+                          Got It! <Check size={10} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="relative mb-6">
             <div className="flex gap-2.5 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
@@ -422,8 +547,8 @@ function AddAlbumModal() {
 
             <div className="grid gap-2.5 max-h-[35vh] overflow-y-auto pr-1">
               {tracks.map((track, index) => (
-                <div key={track.id} className="grid gap-2 rounded-xl border border-white/40 bg-white/40 p-2.5 md:grid-cols-[auto_1fr_auto_auto] shadow-[0_4px_12px_rgba(0,0,0,0.01)]">
-                  <div className="flex flex-row items-center gap-1 md:flex-col">
+                <div key={track.id} className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-1.5 md:gap-2.5 rounded-xl border border-white/40 bg-white/40 p-2 md:p-2.5 shadow-[0_4px_12px_rgba(0,0,0,0.01)]">
+                  <div className="flex flex-row items-center gap-0.5 md:gap-1 md:flex-col">
                     <button
                       type="button"
                       onClick={() => moveTrack(index, -1)}
@@ -448,7 +573,7 @@ function AddAlbumModal() {
                     value={track.title}
                     onChange={(event) => updateTrack(track.id, 'title', event.target.value)}
                     placeholder={`Track ${index + 1} title`}
-                    className="w-full rounded-lg border border-white/50 bg-white/80 px-2.5 py-1.5 text-sm outline-none focus:bg-white focus:border-orange-500 transition-all"
+                    className="w-full rounded-lg border border-white/50 bg-white/80 px-2 py-1 md:px-2.5 md:py-1.5 text-xs md:text-sm outline-none focus:bg-white focus:border-orange-500 transition-all"
                   />
 
                   <div className="flex items-center justify-center">
@@ -462,7 +587,7 @@ function AddAlbumModal() {
                       }`}
                       title={track.category === 'hit' ? 'Remove from Favorites' : 'Mark as Favorite'}
                     >
-                      <Star size={16} strokeWidth={2.5} />
+                      <Star size={14} className="md:w-4 md:h-4" strokeWidth={2.5} />
                     </button>
                   </div>
 
@@ -470,7 +595,7 @@ function AddAlbumModal() {
                     type="button"
                     onClick={() => removeTrackRow(track.id)}
                     disabled={tracks.length === 1}
-                    className="rounded-xl glass-btn px-2.5 py-1.5 text-red-500 hover:text-red-750 hover:bg-red-50/50 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer flex items-center justify-center"
+                    className="rounded-xl glass-btn p-1.5 text-red-500 hover:text-red-750 hover:bg-red-50/50 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer flex items-center justify-center"
                   >
                     <Trash2 size={12} />
                   </button>

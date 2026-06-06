@@ -129,7 +129,7 @@ function App() {
       <GalleryCanvas />
 
       {/* Top Middle Brand Logo */}
-      <div className="pointer-events-none absolute top-4 left-1/2 -translate-x-1/2 z-20 md:top-8 flex justify-center">
+      <div className="pointer-events-none absolute top-4 left-1/2 -translate-x-1/2 z-20 md:top-8 hidden md:flex justify-center">
         <img
           src="/Waxroom main logo.svg"
           className="h-18 md:h-24 w-auto opacity-70 select-none"
@@ -142,21 +142,29 @@ function App() {
         variants={fadeIn}
         initial="hidden"
         animate="visible"
-        className="pointer-events-none absolute left-4 top-4 z-20 md:left-10 md:top-10"
+        className="pointer-events-none absolute left-4 top-4 z-20 md:left-10 md:top-10 flex items-center gap-2"
       >
-        <p className="font-display text-base sm:text-lg md:text-3xl tracking-wider text-zinc-950 uppercase font-extrabold">
-          {isViewingShared
-            ? formatRoomName(sharedOwnerName)
-            : formatRoomName(vaultName)}
-        </p>
-        {isViewingShared && (
-          <button
-            onClick={closeSharedRoom}
-            className="pointer-events-auto mt-1 text-[10px] md:text-xs font-display font-bold uppercase tracking-wider text-zinc-500 underline decoration-2 decoration-zinc-950 underline-offset-4 hover:text-zinc-950 transition cursor-pointer"
-          >
-            Back to My Room
-          </button>
-        )}
+        <img
+          src="/Waxroom main logo.svg"
+          className="h-8 w-auto md:hidden opacity-90 select-none pointer-events-none shrink-0"
+          alt="Waxroom"
+          draggable="false"
+        />
+        <div className="flex flex-col">
+          <p className="font-display text-sm sm:text-base md:text-3xl tracking-wider text-zinc-950 uppercase font-extrabold leading-none">
+            {isViewingShared
+              ? formatRoomName(sharedOwnerName)
+              : formatRoomName(vaultName)}
+          </p>
+          {isViewingShared && (
+            <button
+              onClick={closeSharedRoom}
+              className="pointer-events-auto mt-1 text-[10px] md:text-xs font-display font-bold uppercase tracking-wider text-zinc-500 underline decoration-2 decoration-zinc-950 underline-offset-4 hover:text-zinc-950 transition cursor-pointer text-left"
+            >
+              Back to My Room
+            </button>
+          )}
+        </div>
       </motion.header>
 
       <AlbumDetailOverlay />
