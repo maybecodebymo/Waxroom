@@ -14,6 +14,7 @@ function TimelineFeed() {
   const isViewingShared = useGalleryStore((state) => state.isViewingShared);
   const sharedOwnerName = useGalleryStore((state) => state.sharedOwnerName);
   const loadSharedRoom = useGalleryStore((state) => state.loadSharedRoom);
+  const timelineError = useGalleryStore((state) => state.timelineError);
 
   useEffect(() => {
     if (isFirebaseConfigured && fetchTimelineRooms) {
@@ -67,6 +68,12 @@ function TimelineFeed() {
         <p className="text-xs font-body text-zinc-600 mb-5 leading-relaxed">
           Step into other audiophiles' virtual vinyl rooms. Dig through their custom shelves and explore their tracklists!
         </p>
+
+        {timelineError && (
+          <div className="mb-4 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-800 font-body leading-relaxed break-all">
+            <strong>Database Error:</strong> {timelineError}
+          </div>
+        )}
 
         {/* Publish My Room Section */}
         {!isViewingShared && (

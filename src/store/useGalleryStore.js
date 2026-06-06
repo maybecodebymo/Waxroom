@@ -62,6 +62,7 @@ export const useGalleryStore = create(
       isViewingShared: false,
       sharedOwnerName: null,
       timelineRooms: [],
+      timelineError: null,
       isFeedOpen: false,
       setFeedOpen: (isOpen) => set({ isFeedOpen: isOpen }),
       toggleEditMode: () => set((state) => ({ canEditAlbums: !state.canEditAlbums })),
@@ -188,12 +189,13 @@ export const useGalleryStore = create(
           updatedAt: Date.now(),
         };
 
-        if (isFirebaseConfigured) {
+        if (isFirebaseConfigured && db) {
           try {
             await addDoc(collection(db, 'community_rooms'), newRoom);
             await get().fetchTimelineRooms();
           } catch (err) {
             console.error('Failed to publish room to Firestore:', err);
+            set({ timelineError: `Publish failed: ${err.message}` });
             set((state) => ({
               timelineRooms: [{ id: `room-${Date.now()}`, ...newRoom }, ...state.timelineRooms],
             }));
@@ -205,7 +207,7 @@ export const useGalleryStore = create(
         }
       },
       fetchTimelineRooms: async () => {
-        if (!isFirebaseConfigured) return;
+        if (!isFirebaseConfigured || !db) return;
         try {
           const q = query(collection(db, 'community_rooms'), orderBy('updatedAt', 'desc'), limit(50));
           const querySnapshot = await getDocs(q);
@@ -213,13 +215,16 @@ export const useGalleryStore = create(
           querySnapshot.forEach((docSnap) => {
             rooms.push({ id: docSnap.id, ...docSnap.data() });
           });
-          set({ timelineRooms: rooms });
+          set({ timelineRooms: rooms, timelineError: null });
         } catch (err) {
           console.error('Failed to fetch rooms from Firestore:', err);
+          set({ timelineError: `Load failed: ${err.message}` });
         }
       },
       backupRoomToCloud: async () => {
-        if (!isFirebaseConfigured) return { success: false, error: 'Firebase not configured' };
+        if (!isFirebaseConfigured || !db) {
+          return { success: false, error: 'Firebase is not initialized or configured' };
+        }
         const vaultName = get().vaultName?.trim();
         if (!vaultName) return { success: false, error: 'Please set a room name first' };
         
@@ -237,7 +242,9 @@ export const useGalleryStore = create(
         }
       },
       restoreRoomFromCloud: async (targetName) => {
-        if (!isFirebaseConfigured) return { success: false, error: 'Firebase not configured' };
+        if (!isFirebaseConfigured || !db) {
+          return { success: false, error: 'Firebase is not initialized or configured' };
+        }
         const name = targetName?.trim() || get().vaultName?.trim();
         if (!name) return { success: false, error: 'Please enter a room name to restore' };
 
