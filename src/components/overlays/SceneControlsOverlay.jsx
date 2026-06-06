@@ -323,13 +323,9 @@ function SceneControlsOverlay() {
                             <p className="text-[9px] font-display font-bold uppercase text-red-600 mt-1">{cloudError}</p>
                           )}
                         </div>
-                      ) : (
-                        <div className="flex flex-col gap-1.5 rounded-xl bg-zinc-100/50 border border-zinc-200/40 p-3 text-[9.5px] text-zinc-500 font-body leading-relaxed">
-                          <strong>Note:</strong> Set up Firebase keys in your <code>.env</code> file to enable cross-device cloud backups.
-                        </div>
-                      )}
+                      ) : null}
 
-                      <div className="h-px bg-white/40" />
+                      {isFirebaseConfigured && <div className="h-px bg-white/40" />}
 
                       {controlRows.map((row) => (
                         <label key={row.key} className="grid gap-1.5 pt-1.5 pb-2 border-b border-white/20">

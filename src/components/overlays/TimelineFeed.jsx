@@ -49,11 +49,11 @@ function TimelineFeed() {
               <h2 className="font-display text-sm uppercase tracking-wider text-zinc-900 leading-none">
                 Community Feed
               </h2>
-              <span className={`text-[8.5px] font-display font-bold uppercase tracking-wider mt-1 ${
-                isFirebaseConfigured ? 'text-emerald-600' : 'text-orange-500'
-              }`}>
-                {isFirebaseConfigured ? '✓ Cloud Synced' : '⚠️ Local Mode (Demo)'}
-              </span>
+              {isFirebaseConfigured && (
+                <span className="text-[8.5px] font-display font-bold uppercase tracking-wider mt-1 text-emerald-600">
+                  ✓ Cloud Synced
+                </span>
+              )}
             </div>
           </div>
           <button
@@ -63,12 +63,6 @@ function TimelineFeed() {
             <X size={14} />
           </button>
         </div>
-
-        {!isFirebaseConfigured && (
-          <div className="mb-5 rounded-xl bg-orange-50/50 border border-orange-100 p-3 text-[10px] text-orange-800 font-body leading-relaxed">
-            <strong>Demo Mode:</strong> Configure Firebase keys in your <code>.env</code> file to share records and sync across devices in real-time.
-          </div>
-        )}
 
         <p className="text-xs font-body text-zinc-600 mb-5 leading-relaxed">
           Step into other audiophiles' virtual vinyl rooms. Dig through their custom shelves and explore their tracklists!
