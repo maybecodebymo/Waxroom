@@ -131,7 +131,7 @@ function SceneControlsOverlay() {
                 <button
                   onClick={() => setFeedOpen(!isFeedOpen)}
                   className={`flex-1 py-1.5 rounded-xl text-[10px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 glass-btn ${
-                    isFeedOpen ? 'glass-btn-active font-extrabold' : 'text-zinc-800'
+                    isFeedOpen ? 'glass-btn-active font-bold' : 'text-zinc-800'
                   }`}
                   title="Explore Community Rooms"
                 >
@@ -168,7 +168,7 @@ function SceneControlsOverlay() {
                   type="button"
                   onClick={() => setIsOpen((prev) => !prev)}
                   className={`flex-1 py-1.5 rounded-xl text-[10px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 glass-btn ${
-                    isOpen ? 'glass-btn-active font-extrabold' : 'text-zinc-800'
+                    isOpen ? 'glass-btn-active font-bold' : 'text-zinc-800'
                   }`}
                   title="Tune Globe & Settings"
                 >

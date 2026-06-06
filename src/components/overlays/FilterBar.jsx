@@ -79,7 +79,7 @@ function FilterBar() {
                     <button
                       onClick={() => setIsMobileMenuOpen(true)}
                       className={`shrink-0 rounded-xl px-3.5 py-1.5 text-xs font-display font-bold uppercase tracking-wider transition-all cursor-pointer glass-btn flex items-center gap-1.5 ${
-                        activeGenre !== 'All' ? 'glass-btn-active font-extrabold' : 'text-zinc-800'
+                        activeGenre !== 'All' ? 'glass-btn-active font-bold' : 'text-zinc-800'
                       }`}
                     >
                       <Filter size={12} className={activeGenre !== 'All' ? 'text-white' : 'text-zinc-500'} />
@@ -95,7 +95,7 @@ function FilterBar() {
                             onClick={() => setGenre(genre)}
                             className={`shrink-0 rounded-xl px-3.5 py-1.5 text-xs font-display font-bold uppercase tracking-wider transition-all cursor-pointer glass-btn ${
                               isActive
-                                ? 'glass-btn-active font-extrabold'
+                                ? 'glass-btn-active font-bold'
                                 : 'text-zinc-800'
                             }`}
                           >
@@ -112,7 +112,7 @@ function FilterBar() {
                       id="get-lucky-btn"
                       className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-display font-bold uppercase tracking-wider transition-all cursor-pointer glass-btn ${
                         isRecommendationsOpen
-                          ? 'glass-btn-active font-extrabold'
+                          ? 'glass-btn-active font-bold'
                           : 'text-zinc-800'
                       }`}
                     >
@@ -190,7 +190,7 @@ function FilterBar() {
                     }}
                     className={`w-full text-left rounded-xl px-4 py-2.5 text-xs font-display font-bold uppercase tracking-wider transition-all cursor-pointer ${
                       isActive
-                        ? 'glass-btn-active font-extrabold'
+                        ? 'glass-btn-active font-bold'
                         : 'bg-white/50 border border-white/50 text-zinc-800 hover:bg-white/80'
                     }`}
                   >
