@@ -294,7 +294,7 @@ function AddAlbumModal() {
           closeAlbumModal();
         }
       }}
-      className="absolute inset-0 z-40 flex items-center justify-center bg-zinc-950/20 p-4"
+      className="absolute inset-0 z-40 flex items-center justify-center bg-zinc-950/60 backdrop-blur-md p-4"
     >
       <motion.form
         ref={containerRef}
@@ -306,7 +306,7 @@ function AddAlbumModal() {
           e.preventDefault();
           onSubmit();
         }}
-        className="glass max-h-[92vh] w-[min(95vw,820px)] overflow-y-auto rounded-2xl p-5 md:p-7 text-zinc-950"
+        className="bg-[#f5f5f3] border border-zinc-200/80 max-h-[92vh] w-[min(95vw,820px)] overflow-y-auto rounded-2xl p-5 md:p-7 text-zinc-950 shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
       >
           <div className="mb-5 flex items-center justify-between border-b border-white/20 pb-3">
             <div className="flex items-center gap-2">
@@ -417,7 +417,7 @@ function AddAlbumModal() {
           </AnimatePresence>
 
           <div className="relative mb-6">
-            <div className="flex gap-2.5 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+            <div className="flex gap-2.5 rounded-xl border border-zinc-200 bg-white p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
                 <input
@@ -425,7 +425,7 @@ function AddAlbumModal() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search iTunes to auto-fill..."
-                  className="w-full rounded-lg border border-white/50 bg-white/80 py-2 !pl-10 pr-3 text-base md:text-sm outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
+                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 py-2 !pl-10 pr-3 text-base md:text-sm outline-none shadow-sm focus:bg-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 transition-all"
                 />
                 {isSearching && (
                   <div className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin rounded-full border border-orange-500 border-t-transparent" />
@@ -434,14 +434,14 @@ function AddAlbumModal() {
             </div>
 
             {searchResults.length > 0 && (
-              <ul className="absolute z-10 mt-1.5 max-h-[250px] w-full overflow-y-auto rounded-xl border border-white/60 bg-white/95 backdrop-blur-md shadow-[0_12px_30px_rgba(0,0,0,0.15)]">
+              <ul className="absolute z-10 mt-1.5 max-h-[250px] w-full overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-[0_12px_30px_rgba(0,0,0,0.15)]">
                 {searchResults.map((album) => (
                   <li
                     key={album.collectionId}
                     onClick={() => selectAlbumSuggestion(album)}
                     className="flex cursor-pointer items-center gap-3 border-b border-zinc-200/50 p-3 px-4 transition-colors last:border-0 hover:bg-orange-500/10 text-zinc-950"
                   >
-                    <img src={album.artworkUrl60} alt={album.collectionName} className="h-10 w-10 shrink-0 rounded-lg border border-white/50 object-cover shadow-sm" />
+                    <img src={album.artworkUrl60} alt={album.collectionName} className="h-10 w-10 shrink-0 rounded-lg border border-zinc-200 object-cover shadow-sm" />
                     <div className="flex flex-col overflow-hidden">
                       <span className="truncate text-sm font-bold text-zinc-950">{album.collectionName}</span>
                       <span className="truncate text-xs text-zinc-500">{album.artistName}</span>
@@ -459,7 +459,7 @@ function AddAlbumModal() {
                 required
                 value={artist}
                 onChange={(event) => setArtist(event.target.value)}
-                className="w-full rounded-lg border border-white/50 bg-white/80 px-3 py-2 text-base md:text-sm outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base md:text-sm outline-none shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 transition-all"
               />
             </label>
 
@@ -469,7 +469,7 @@ function AddAlbumModal() {
                 required
                 value={albumTitle}
                 onChange={(event) => setAlbumTitle(event.target.value)}
-                className="w-full rounded-lg border border-white/50 bg-white/80 px-3 py-2 text-base md:text-sm outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base md:text-sm outline-none shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 transition-all"
               />
             </label>
 
@@ -480,7 +480,7 @@ function AddAlbumModal() {
                 required
                 value={genre}
                 onChange={(event) => setGenre(event.target.value)}
-                className="w-full rounded-lg border border-white/50 bg-white/80 px-3 py-2 text-base md:text-sm outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base md:text-sm outline-none shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 transition-all"
               />
               <datalist id="genre-list">
                 {genres.map((item) => (
@@ -516,7 +516,7 @@ function AddAlbumModal() {
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               rows={3}
-              className="w-full rounded-lg border border-white/50 bg-white/80 px-3 py-2 text-base md:text-sm outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base md:text-sm outline-none shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 transition-all"
             />
           </label>
 
@@ -526,14 +526,14 @@ function AddAlbumModal() {
               type="file" 
               accept="image/*" 
               onChange={handleImageUpload} 
-              className="rounded-lg border border-white/50 bg-white/80 p-2 text-xs font-display font-bold cursor-pointer hover:bg-white transition-all" 
+              className="rounded-lg border border-zinc-200 bg-white p-2 text-xs font-display font-bold cursor-pointer hover:bg-zinc-50 transition-all" 
             />
             <p className="text-[10px] font-display font-bold text-zinc-500 uppercase">
               {isProcessing ? 'Generating circular CD texture...' : textureUrl ? 'Texture generated and ready.' : 'Upload an image to generate CD texture.'}
             </p>
           </div>
 
-          <div className="mt-5 rounded-xl border border-white/40 bg-white/40 p-3.5 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+          <div className="mt-5 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3.5 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-650">Tracklist Builder</p>
               <button
@@ -547,7 +547,7 @@ function AddAlbumModal() {
 
             <div className="grid gap-2.5 max-h-[35vh] overflow-y-auto pr-1">
               {tracks.map((track, index) => (
-                <div key={track.id} className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-1.5 md:gap-2.5 rounded-xl border border-white/40 bg-white/40 p-2 md:p-2.5 shadow-[0_4px_12px_rgba(0,0,0,0.01)]">
+                <div key={track.id} className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-1.5 md:gap-2.5 rounded-xl border border-zinc-200 bg-white p-2 md:p-2.5 shadow-[0_4px_12px_rgba(0,0,0,0.01)]">
                   <div className="flex flex-row items-center gap-0.5 md:gap-1 md:flex-col">
                     <button
                       type="button"
@@ -573,7 +573,7 @@ function AddAlbumModal() {
                     value={track.title}
                     onChange={(event) => updateTrack(track.id, 'title', event.target.value)}
                     placeholder={`Track ${index + 1} title`}
-                    className="w-full rounded-lg border border-white/50 bg-white/80 px-2 py-1 md:px-2.5 md:py-1.5 text-base md:text-xs outline-none focus:bg-white focus:border-orange-500 transition-all"
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 md:px-2.5 md:py-1.5 text-base md:text-xs outline-none focus:bg-white focus:border-orange-500 transition-all"
                   />
 
                   <div className="flex items-center justify-center">
