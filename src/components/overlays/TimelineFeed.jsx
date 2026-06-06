@@ -26,7 +26,6 @@ function TimelineFeed() {
   }, [subscribeToTimelineRooms]);
 
   const [description, setDescription] = useState('');
-  const [justPublished, setJustPublished] = useState(false);
 
   const activeRoom = timelineRooms.find(r => 
     r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim() ||
@@ -42,8 +41,6 @@ function TimelineFeed() {
   const handlePublish = (e) => {
     e.preventDefault();
     publishRoom(description.trim());
-    setJustPublished(true);
-    setTimeout(() => setJustPublished(false), 3000);
   };
 
   return (
@@ -98,8 +95,6 @@ function TimelineFeed() {
                     unpublishRoom(activeRoom?.id);
                   } else {
                     publishRoom(description.trim());
-                    setJustPublished(true);
-                    setTimeout(() => setJustPublished(false), 3000);
                   }
                 }}
                 className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
@@ -115,15 +110,7 @@ function TimelineFeed() {
               </button>
             </div>
             
-            {justPublished ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="py-6 text-center text-xs font-display font-bold text-emerald-600 uppercase tracking-wider"
-              >
-                Room Published! 🎉
-              </motion.div>
-            ) : isCurrentlyPublished ? (
+            {isCurrentlyPublished ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-1.5">
                   <span className="relative flex h-2 w-2">
