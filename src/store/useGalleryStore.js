@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { db, isFirebaseConfigured } from '../utils/firebase';
-import { collection, addDoc, getDocs, getDoc, setDoc, doc, query, orderBy, limit } from 'firebase/firestore';
+import { collection, addDoc, getDocs, getDoc, setDoc, doc, query, orderBy, limit, deleteDoc } from 'firebase/firestore';
 
 const buildGenres = (albums) => ['All', ...new Set(albums.map((album) => album.genre))];
 
@@ -54,7 +54,27 @@ export const useGalleryStore = create(
       sceneControls: defaultSceneControls,
       sceneControlsVersion,
       vaultName: '',
-      setVaultName: (name) => set({ vaultName: name }),
+      setVaultName: async (name) => {
+        const oldName = get().vaultName;
+        const oldId = oldName?.toLowerCase().trim();
+        const newId = name?.toLowerCase().trim();
+
+        set({ vaultName: name });
+
+        if (get().isPublished && oldId && newId && oldId !== newId) {
+          if (isFirebaseConfigured && db) {
+            try {
+              await deleteDoc(doc(db, 'community_rooms', oldId));
+              set({ lastPublishedVaultName: name });
+              await get().syncLiveRoomToFirestore();
+            } catch (err) {
+              console.error('Failed to rename live room in Firestore:', err);
+            }
+          } else {
+            set({ lastPublishedVaultName: name });
+          }
+        }
+      },
       hasCompletedTour: false,
       setCompletedTour: (completed) => set({ hasCompletedTour: completed }),
       isRecommendationsOpen: false,
@@ -65,6 +85,9 @@ export const useGalleryStore = create(
       timelineError: null,
       isFeedOpen: false,
       setFeedOpen: (isOpen) => set({ isFeedOpen: isOpen }),
+      isPublished: false,
+      publishedDescription: '',
+      lastPublishedVaultName: '',
       toggleEditMode: () => set((state) => ({ canEditAlbums: !state.canEditAlbums })),
       activeTrack: null,
       isPlaying: false,
@@ -119,6 +142,8 @@ export const useGalleryStore = create(
             activeGenre: 'All',
           };
         });
+
+        get().syncLiveRoomToFirestore();
       },
       updateAlbum: (albumId, albumPatch) => {
         if (!get().canEditAlbums || get().isViewingShared) return;
@@ -131,6 +156,8 @@ export const useGalleryStore = create(
             genres: buildGenres(myAlbums),
           };
         });
+
+        get().syncLiveRoomToFirestore();
       },
       deleteAlbum: (albumId) => {
         if (!get().canEditAlbums || get().isViewingShared) return;
@@ -145,6 +172,8 @@ export const useGalleryStore = create(
             selectedAlbumId: nextSelected,
           };
         });
+
+        get().syncLiveRoomToFirestore();
       },
       replaceRoom: (newAlbums) => {
         if (!get().canEditAlbums || get().isViewingShared) return;
@@ -155,6 +184,8 @@ export const useGalleryStore = create(
           selectedAlbumId: null,
           activeGenre: 'All',
         });
+
+        get().syncLiveRoomToFirestore();
       },
       loadSharedRoom: (ownerName, sharedAlbums) => {
         set({
@@ -180,29 +211,93 @@ export const useGalleryStore = create(
       publishRoom: async (description) => {
         const myAlbums = get().myAlbums;
         const vaultName = get().vaultName || 'Anonymous';
+        const vaultId = vaultName.toLowerCase().trim();
+        const desc = description || 'No description provided.';
         const newRoom = {
           ownerName: vaultName,
           roomName: `${vaultName}'s Room`,
-          description: description || 'No description provided.',
+          description: desc,
           genres: [...new Set(myAlbums.map((a) => a.genre))].slice(0, 3).join(', '),
           albums: myAlbums,
           updatedAt: Date.now(),
         };
 
-        if (isFirebaseConfigured && db) {
+        set({
+          isPublished: true,
+          publishedDescription: desc,
+          lastPublishedVaultName: vaultName,
+          timelineError: null
+        });
+
+        if (isFirebaseConfigured && db && vaultId) {
           try {
-            await addDoc(collection(db, 'community_rooms'), newRoom);
+            await setDoc(doc(db, 'community_rooms', vaultId), newRoom);
             await get().fetchTimelineRooms();
           } catch (err) {
             console.error('Failed to publish room to Firestore:', err);
             set({ timelineError: `Publish failed: ${err.message}` });
             set((state) => ({
-              timelineRooms: [{ id: `room-${Date.now()}`, ...newRoom }, ...state.timelineRooms],
+              timelineRooms: [{ id: `room-${vaultId}`, ...newRoom }, ...state.timelineRooms.filter(r => r.id !== `room-${vaultId}`)],
             }));
           }
         } else {
+          const localId = `room-${vaultId || Date.now()}`;
           set((state) => ({
-            timelineRooms: [{ id: `room-${Date.now()}`, ...newRoom }, ...state.timelineRooms],
+            timelineRooms: [{ id: localId, ...newRoom }, ...state.timelineRooms.filter(r => r.id !== localId)],
+          }));
+        }
+      },
+      syncLiveRoomToFirestore: async () => {
+        if (!isFirebaseConfigured || !db) return;
+        const { isPublished, myAlbums, vaultName, publishedDescription } = get();
+        if (!isPublished) return;
+        
+        const vaultId = vaultName?.toLowerCase().trim();
+        if (!vaultId) return;
+
+        const newRoom = {
+          ownerName: vaultName,
+          roomName: `${vaultName}'s Room`,
+          description: publishedDescription || 'No description provided.',
+          genres: [...new Set(myAlbums.map((a) => a.genre))].slice(0, 3).join(', '),
+          albums: myAlbums,
+          updatedAt: Date.now(),
+        };
+
+        try {
+          await setDoc(doc(db, 'community_rooms', vaultId), newRoom);
+          await get().fetchTimelineRooms();
+        } catch (err) {
+          console.error('Failed to sync live room to Firestore:', err);
+          set({ timelineError: `Sync failed: ${err.message}` });
+        }
+      },
+      unpublishRoom: async () => {
+        const { lastPublishedVaultName } = get();
+        const vaultId = lastPublishedVaultName?.toLowerCase().trim() || get().vaultName?.toLowerCase().trim();
+
+        set({
+          isPublished: false,
+          publishedDescription: '',
+          lastPublishedVaultName: '',
+          timelineError: null
+        });
+
+        if (isFirebaseConfigured && db && vaultId) {
+          try {
+            await deleteDoc(doc(db, 'community_rooms', vaultId));
+          } catch (err) {
+            console.error('Failed to delete live room from Firestore:', err);
+            set({ timelineError: `Go offline failed: ${err.message}` });
+          }
+        }
+
+        if (isFirebaseConfigured && db) {
+          await get().fetchTimelineRooms();
+        } else {
+          // If in local-only fallback mode, filter out the local room
+          set((state) => ({
+            timelineRooms: state.timelineRooms.filter((r) => r.id !== `room-${vaultId}` && r.id !== `room-${Date.now()}`),
           }));
         }
       },
@@ -286,6 +381,9 @@ export const useGalleryStore = create(
         sceneControlsVersion,
         vaultName: state.vaultName,
         hasCompletedTour: state.hasCompletedTour,
+        isPublished: state.isPublished,
+        publishedDescription: state.publishedDescription,
+        lastPublishedVaultName: state.lastPublishedVaultName,
       }),
       merge: (persistedState, currentState) => {
         const storedMyAlbums = persistedState?.myAlbums;
@@ -315,6 +413,9 @@ export const useGalleryStore = create(
           timelineRooms,
           sceneControls,
           sceneControlsVersion,
+          isPublished: persistedState?.isPublished ?? false,
+          publishedDescription: persistedState?.publishedDescription ?? '',
+          lastPublishedVaultName: persistedState?.lastPublishedVaultName ?? '',
         };
       },
     }

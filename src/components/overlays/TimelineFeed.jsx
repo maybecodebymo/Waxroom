@@ -15,6 +15,9 @@ function TimelineFeed() {
   const sharedOwnerName = useGalleryStore((state) => state.sharedOwnerName);
   const loadSharedRoom = useGalleryStore((state) => state.loadSharedRoom);
   const timelineError = useGalleryStore((state) => state.timelineError);
+  const isPublished = useGalleryStore((state) => state.isPublished);
+  const publishedDescription = useGalleryStore((state) => state.publishedDescription);
+  const unpublishRoom = useGalleryStore((state) => state.unpublishRoom);
 
   useEffect(() => {
     if (isFirebaseConfigured && fetchTimelineRooms) {
@@ -82,7 +85,35 @@ function TimelineFeed() {
               <Sparkles size={13} className="text-orange-500" /> Share My Room
             </h3>
             
-            {justPublished ? (
+            {isPublished ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span className="text-[10px] font-display font-extrabold uppercase tracking-wider text-emerald-600">
+                      Live Profile Active
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => unpublishRoom()}
+                    className="text-[9px] font-display font-extrabold uppercase tracking-widest text-zinc-400 hover:text-red-500 transition cursor-pointer"
+                  >
+                    Go Offline
+                  </button>
+                </div>
+                
+                <p className="text-xs font-body text-zinc-700 italic bg-white/50 border border-zinc-200/50 rounded-lg p-2.5 leading-relaxed break-words">
+                  "{publishedDescription}"
+                </p>
+                
+                <p className="text-[9.5px] font-body text-zinc-500 leading-relaxed">
+                  Your public profile is active. Any changes you make to your vault will sync to the community tab in real-time.
+                </p>
+              </div>
+            ) : justPublished ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -105,7 +136,7 @@ function TimelineFeed() {
                   disabled={!description.trim() || myAlbums.length === 0}
                   className="w-full flex items-center justify-center gap-1.5 rounded-xl text-zinc-800 py-2 px-4 text-xs font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
                 >
-                  <Send size={12} /> Publish Room
+                  <Send size={12} /> Go Live
                 </button>
               </form>
             )}
