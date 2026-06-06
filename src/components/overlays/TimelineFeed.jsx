@@ -28,6 +28,10 @@ function TimelineFeed() {
   const [description, setDescription] = useState('');
   const [justPublished, setJustPublished] = useState(false);
 
+  const activeRoom = timelineRooms.find(r => r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim());
+  const isCurrentlyPublished = isPublished || !!activeRoom;
+  const displayDescription = publishedDescription || activeRoom?.description || '';
+
   const handlePublish = (e) => {
     e.preventDefault();
     publishRoom(description.trim());
@@ -80,7 +84,7 @@ function TimelineFeed() {
               <Sparkles size={13} className="text-orange-500" /> Share My Room
             </h3>
             
-            {isPublished ? (
+            {isCurrentlyPublished ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
@@ -94,14 +98,14 @@ function TimelineFeed() {
                   </div>
                   <button
                     onClick={() => unpublishRoom()}
-                    className="text-[9px] font-display font-extrabold uppercase tracking-widest text-zinc-400 hover:text-red-500 transition cursor-pointer"
+                    className="text-[9px] font-display font-extrabold uppercase tracking-widest text-red-500 hover:text-red-755 transition cursor-pointer"
                   >
-                    Go Offline
+                    Unpublish / Delete
                   </button>
                 </div>
                 
                 <p className="text-xs font-body text-zinc-700 italic bg-white/50 border border-zinc-200/50 rounded-lg p-2.5 leading-relaxed break-words">
-                  "{publishedDescription}"
+                  "{displayDescription}"
                 </p>
                 
                 <p className="text-[9.5px] font-body text-zinc-500 leading-relaxed">
@@ -177,9 +181,18 @@ function TimelineFeed() {
                           Viewing
                         </span>
                       ) : isOwnRoom ? (
-                        <span className="text-[9px] font-display font-extrabold uppercase tracking-widest bg-zinc-700 text-white py-0.5 px-2.5 rounded-md shadow-sm">
-                          Yours
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-display font-extrabold uppercase tracking-widest bg-zinc-700 text-white py-0.5 px-2.5 rounded-md shadow-sm">
+                            Yours
+                          </span>
+                          <button
+                            onClick={() => unpublishRoom()}
+                            className="text-[9px] font-display font-extrabold uppercase tracking-widest py-1 px-2 rounded-xl transition-all bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white cursor-pointer border border-red-500/20"
+                            title="Unpublish room from feed"
+                          >
+                            Unpublish
+                          </button>
+                        </div>
                       ) : (
                         <button
                           onClick={() => {

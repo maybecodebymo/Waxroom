@@ -29,6 +29,7 @@ function SceneControlsOverlay() {
   const setVaultName = useGalleryStore((state) => state.setVaultName);
   const isFeedOpen = useGalleryStore((state) => state.isFeedOpen);
   const setFeedOpen = useGalleryStore((state) => state.setFeedOpen);
+  const timelineRooms = useGalleryStore((state) => state.timelineRooms);
   const [isOpen, setIsOpen] = useState(false);
   const selectedAlbumId = useGalleryStore((state) => state.selectedAlbumId);
   const replaceRoom = useGalleryStore((state) => state.replaceRoom);
@@ -337,22 +338,28 @@ function SceneControlsOverlay() {
                         </div>
                       ) : null}
 
-                      {isPublished && (
+                      {vaultName && (
                         <div className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
+                          <div className="flex items-center justify-between font-display text-[10px] font-bold uppercase tracking-wider text-zinc-750">
+                            <span className="flex items-center gap-1.5">
                               <span className="relative flex h-1.5 w-1.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                {(isPublished || timelineRooms.some(r => r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim())) ? (
+                                  <>
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                  </>
+                                ) : (
+                                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-zinc-400"></span>
+                                )}
                               </span>
-                              Room is Public
+                              {(isPublished || timelineRooms.some(r => r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim())) ? 'Room is Public' : 'Room is Private'}
                             </span>
                             <button
                               type="button"
                               onClick={() => unpublishRoom()}
-                              className="text-[9px] font-display font-extrabold uppercase tracking-widest text-red-500 hover:text-red-700 transition cursor-pointer"
+                              className="text-[9px] font-display font-extrabold uppercase tracking-widest text-red-500 hover:text-red-750 transition cursor-pointer"
                             >
-                              Go Offline
+                              Unpublish / Delete
                             </button>
                           </div>
                         </div>
