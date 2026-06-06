@@ -51,7 +51,7 @@ function TimelineFeed() {
             <Globe size={18} className="text-zinc-800 animate-pulse" />
             <div className="flex flex-col">
               <h2 className="font-display text-sm uppercase tracking-wider text-zinc-900 leading-none">
-                Listening Rooms
+                Community Feed
               </h2>
             </div>
           </div>
@@ -64,7 +64,7 @@ function TimelineFeed() {
         </div>
 
         <p className="text-xs font-body text-zinc-600 mb-5 leading-relaxed">
-          Slip into other audiophiles' spaces. Dig their crates and see what they're spinning.
+          Step into other audiophiles' virtual vinyl rooms. Dig through their custom shelves and explore their tracklists!
         </p>
 
         {timelineError && (
@@ -89,14 +89,14 @@ function TimelineFeed() {
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </span>
                     <span className="text-[10px] font-display font-extrabold uppercase tracking-wider text-emerald-600">
-                      On the air
+                      Live Profile Active
                     </span>
                   </div>
                   <button
                     onClick={() => unpublishRoom()}
                     className="text-[9px] font-display font-extrabold uppercase tracking-widest text-zinc-400 hover:text-red-500 transition cursor-pointer"
                   >
-                    Unplug
+                    Go Offline
                   </button>
                 </div>
                 
@@ -121,7 +121,7 @@ function TimelineFeed() {
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="What's the vibe of this crate? (e.g. late-night ambient & vintage jazz)"
+                  placeholder="Tell the community about your wax shelf... (e.g. Vintage jazz & late night ambient)"
                   rows={2}
                   maxLength={100}
                   className="w-full text-base md:text-xs rounded-lg border border-white/50 bg-white/80 p-2.5 outline-none placeholder:text-zinc-400 text-zinc-800 resize-none focus:bg-white focus:border-orange-500 transition-all shadow-sm"
@@ -131,7 +131,7 @@ function TimelineFeed() {
                   disabled={!description.trim() || myAlbums.length === 0}
                   className="w-full flex items-center justify-center gap-1.5 rounded-xl text-zinc-800 py-2 px-4 text-xs font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
                 >
-                  <Send size={12} /> Share the deck
+                  <Send size={12} /> Go Live
                 </button>
               </form>
             )}
@@ -141,7 +141,7 @@ function TimelineFeed() {
         {/* Community List */}
         <div className="space-y-4">
           <h3 className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-400">
-            Active Decks ({timelineRooms.length})
+            Active Waxrooms ({timelineRooms.length})
           </h3>
           <div className="space-y-3.5 max-h-[52vh] overflow-y-auto pr-1">
             {timelineRooms.length === 0 ? (

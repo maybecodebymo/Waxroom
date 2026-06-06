@@ -39,6 +39,8 @@ function SceneControlsOverlay() {
 
   const backupRoomToCloud = useGalleryStore((state) => state.backupRoomToCloud);
   const restoreRoomFromCloud = useGalleryStore((state) => state.restoreRoomFromCloud);
+  const isPublished = useGalleryStore((state) => state.isPublished);
+  const unpublishRoom = useGalleryStore((state) => state.unpublishRoom);
 
   const [isMobile, setIsMobile] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -192,9 +194,9 @@ function SceneControlsOverlay() {
                       >
                         <div className="flex flex-col items-start font-display">
                           <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
-                            <Database size={13} /> Customize layout
+                            <Database size={13} /> Personalize Room
                           </span>
-                          <span className="mt-0.5 text-[8.5px] font-bold text-zinc-500 uppercase tracking-widest pl-[21px]">Offline mode</span>
+                          <span className="mt-0.5 text-[8.5px] font-bold text-zinc-500 uppercase tracking-widest pl-[21px]">Saved Locally</span>
                         </div>
                         <span className="text-[10px] font-display uppercase font-bold">{canEditAlbums ? 'On' : 'Off'}</span>
                       </button>
@@ -208,7 +210,7 @@ function SceneControlsOverlay() {
                             type="text" 
                             value={vaultName}
                             onChange={(e) => setVaultName(e.target.value)}
-                            placeholder="e.g. Mo, Chill Beats, Retro" 
+                            placeholder="Name your vault" 
                             className="w-full rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-base md:text-[11px] font-semibold outline-none focus:border-orange-500 focus:bg-white transition-all"
                           />
                         </div>
@@ -236,15 +238,15 @@ function SceneControlsOverlay() {
                         className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]"
                       >
                         <span className="flex items-center gap-2 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
-                          Sync your scrobbles
+                          Last.fm Auto-Sync
                         </span>
                         <div className="flex gap-2">
-                           <input 
+                            <input 
                              type="text" 
                              value={lfmUser}
                              disabled={isSyncing}
                              onChange={(e) => setLfmUser(e.target.value)}
-                             placeholder="Scrobble handle..." 
+                             placeholder="Username" 
                              className="min-w-0 flex-1 rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-base md:text-[11px] outline-none focus:border-orange-500 focus:bg-white transition-all"
                            />
                            <button 
@@ -252,7 +254,7 @@ function SceneControlsOverlay() {
                              disabled={isSyncing || !lfmUser.trim()}
                              className="shrink-0 rounded-lg text-zinc-955 px-3 py-1.5 text-[10px] font-display font-bold uppercase tracking-widest transition-all glass-btn cursor-pointer"
                            >
-                             {isSyncing ? 'Syncing...' : 'Import'}
+                             {isSyncing ? 'Syncing...' : 'Sync'}
                            </button>
                         </div>
                       </form>
@@ -285,7 +287,7 @@ function SceneControlsOverlay() {
                               className="w-full flex items-center justify-center gap-1.5 rounded-lg py-2 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn text-zinc-850 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
                             >
                               <UploadCloud size={12} />
-                              {isCloudLoading ? 'Backing up...' : 'Push to cloud'}
+                              {isCloudLoading ? 'Backing up...' : 'Backup Current Room'}
                             </button>
                             
                             <div className="h-px bg-white/20 my-1" />
@@ -295,11 +297,11 @@ function SceneControlsOverlay() {
                             </span>
                             
                             <div className="flex gap-2">
-                              <input 
+                               <input 
                                 type="text" 
                                 value={restoreName}
                                 onChange={(e) => setRestoreName(e.target.value)}
-                                placeholder="Crate name to restore..." 
+                                placeholder="Enter Room Name to Load" 
                                 className="min-w-0 flex-1 rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-base md:text-[11px] outline-none focus:border-orange-500 focus:bg-white transition-all"
                               />
                               <button 
@@ -321,7 +323,7 @@ function SceneControlsOverlay() {
                                 }}
                                 className="shrink-0 rounded-lg text-zinc-955 px-3 py-1.5 text-[10px] font-display font-bold uppercase tracking-widest transition-all glass-btn cursor-pointer disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1"
                               >
-                                <DownloadCloud size={11} /> Restore
+                                <DownloadCloud size={11} /> Load
                               </button>
                             </div>
                           </div>
@@ -334,6 +336,27 @@ function SceneControlsOverlay() {
                           )}
                         </div>
                       ) : null}
+
+                      {isPublished && (
+                        <div className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+                          <div className="flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
+                              <span className="relative flex h-1.5 w-1.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                              </span>
+                              Room is Public
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => unpublishRoom()}
+                              className="text-[9px] font-display font-extrabold uppercase tracking-widest text-red-500 hover:text-red-700 transition cursor-pointer"
+                            >
+                              Go Offline
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       {isFirebaseConfigured && <div className="h-px bg-white/40" />}
 

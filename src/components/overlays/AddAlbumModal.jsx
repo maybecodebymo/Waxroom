@@ -424,7 +424,7 @@ function AddAlbumModal() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search any record name..."
+                  placeholder="Search iTunes to auto-fill..."
                   className="w-full rounded-lg border border-white/50 bg-white/80 py-2 !pl-10 pr-3 text-base md:text-sm outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
                 />
                 {isSearching && (
@@ -474,7 +474,7 @@ function AddAlbumModal() {
             </label>
 
             <label className="grid gap-1.5">
-              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-650">Genre</span>
+              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-650">Genre (creatable)</span>
               <input
                 list="genre-list"
                 required
@@ -610,7 +610,7 @@ function AddAlbumModal() {
               disabled={!canSubmit}
               className="rounded-xl bg-orange-500 hover:bg-orange-600 px-5 py-2 text-xs font-display font-bold uppercase tracking-wider text-white shadow-[0_4px_12px_rgba(234,88,12,0.2)] transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none active:scale-95"
             >
-              {editingAlbumId ? 'Lock in changes' : 'Press to vinyl'}
+              {editingAlbumId ? 'Save Changes' : 'Add Album'}
             </button>
           </div>
       </motion.form>
