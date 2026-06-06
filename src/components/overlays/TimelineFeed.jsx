@@ -96,7 +96,7 @@ function TimelineFeed() {
                 type="button"
                 onClick={() => {
                   if (isCurrentlyPublished) {
-                    unpublishRoom();
+                    unpublishRoom(activeRoom?.id);
                   } else {
                     publishRoom(description.trim());
                     setJustPublished(true);
@@ -155,7 +155,7 @@ function TimelineFeed() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => unpublishRoom()}
+                      onClick={() => unpublishRoom(activeRoom?.id)}
                       className="flex-1 rounded-xl text-red-600 py-2 px-3 text-xs font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer text-center"
                     >
                       Go Offline

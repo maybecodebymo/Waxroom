@@ -280,25 +280,38 @@ export const useGalleryStore = create(
           vaultId = vaultId.substring(5);
         }
 
-        const currentVaultId = vaultName?.toLowerCase().trim();
-        const lastPublishedId = lastPublishedVaultName?.toLowerCase().trim();
+        set({
+          isPublished: false,
+          publishedDescription: '',
+          lastPublishedVaultName: '',
+          timelineError: null
+        });
 
-        if (!customVaultId || 
-            customVaultId === currentVaultId || 
-            customVaultId === lastPublishedId || 
-            vaultId === currentVaultId || 
-            vaultId === lastPublishedId) {
-          set({
-            isPublished: false,
-            publishedDescription: '',
-            lastPublishedVaultName: '',
-            timelineError: null
-          });
-        }
-
-        if (isFirebaseConfigured && db && vaultId) {
+        if (isFirebaseConfigured && db) {
           try {
-            await deleteDoc(doc(db, 'community_rooms', vaultId));
+            if (vaultId) {
+              await deleteDoc(doc(db, 'community_rooms', vaultId));
+            }
+
+            // Query to find and clean up any other duplicates under the same owner names
+            const q = query(collection(db, 'community_rooms'));
+            const querySnapshot = await getDocs(q);
+            const deletePromises = [];
+            querySnapshot.forEach((docSnap) => {
+              if (docSnap.id === vaultId) return;
+
+              const data = docSnap.data();
+              const owner = data.ownerName?.toLowerCase().trim();
+              const targetOwner1 = vaultName?.toLowerCase().trim();
+              const targetOwner2 = lastPublishedVaultName?.toLowerCase().trim();
+              if (owner === targetOwner1 || owner === targetOwner2) {
+                deletePromises.push(deleteDoc(doc(db, 'community_rooms', docSnap.id)));
+              }
+            });
+
+            if (deletePromises.length > 0) {
+              await Promise.all(deletePromises);
+            }
           } catch (err) {
             console.error('Failed to delete live room from Firestore:', err);
             set({ timelineError: `Go offline failed: ${err.message}` });

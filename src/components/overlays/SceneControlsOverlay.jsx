@@ -375,7 +375,7 @@ function SceneControlsOverlay() {
                               type="button"
                               onClick={() => {
                                 if (isCurrentlyPublished) {
-                                  unpublishRoom();
+                                  unpublishRoom(activeRoom?.id);
                                 } else {
                                   publishRoom(description.trim());
                                 }
@@ -423,7 +423,7 @@ function SceneControlsOverlay() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => unpublishRoom()}
+                                  onClick={() => unpublishRoom(activeRoom?.id)}
                                   className="flex-1 rounded-lg text-red-655 text-red-600 py-1.5 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer text-center"
                                 >
                                   Go Offline
