@@ -53,17 +53,15 @@ function App() {
 
   // Dynamic SEO and Title Updates
   useEffect(() => {
-    let title = "Waxroom — 3D Music Space";
+    let title = "waxroom";
     let description = "Build, explore, and share your music collection in an interactive 3D vinyl globe. Sync from Last.fm, discover new albums, and share your room with friends.";
     
     if (isViewingShared && sharedOwnerName) {
-      const roomName = formatRoomName(sharedOwnerName);
-      title = `${roomName} | Waxroom`;
-      description = `Explore ${roomName}'s curated 3D vinyl record vault on Waxroom. Sync, play, and discover music.`;
+      title = formatRoomName(sharedOwnerName);
+      description = `Explore ${title}'s curated 3D vinyl record vault on Waxroom. Sync, play, and discover music.`;
     } else if (vaultName) {
-      const roomName = formatRoomName(vaultName);
-      title = `${roomName} | Waxroom`;
-      description = `Explore ${roomName}'s curated 3D vinyl record vault on Waxroom. Sync, play, and discover music.`;
+      title = formatRoomName(vaultName);
+      description = `Explore ${title}'s curated 3D vinyl record vault on Waxroom. Sync, play, and discover music.`;
     }
 
     document.title = title;
