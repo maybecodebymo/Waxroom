@@ -8,7 +8,7 @@ function TimelineFeed() {
   const setFeedOpen = useGalleryStore((state) => state.setFeedOpen);
   const timelineRooms = useGalleryStore((state) => state.timelineRooms);
   const publishRoom = useGalleryStore((state) => state.publishRoom);
-  const fetchTimelineRooms = useGalleryStore((state) => state.fetchTimelineRooms);
+  const subscribeToTimelineRooms = useGalleryStore((state) => state.subscribeToTimelineRooms);
   const myAlbums = useGalleryStore((state) => state.myAlbums);
   const vaultName = useGalleryStore((state) => state.vaultName);
   const isViewingShared = useGalleryStore((state) => state.isViewingShared);
@@ -21,10 +21,9 @@ function TimelineFeed() {
   const unpublishRoom = useGalleryStore((state) => state.unpublishRoom);
 
   useEffect(() => {
-    if (isFirebaseConfigured && fetchTimelineRooms) {
-      fetchTimelineRooms();
-    }
-  }, [fetchTimelineRooms]);
+    const unsubscribe = subscribeToTimelineRooms();
+    return () => unsubscribe();
+  }, [subscribeToTimelineRooms]);
 
   const [description, setDescription] = useState('');
   const [justPublished, setJustPublished] = useState(false);

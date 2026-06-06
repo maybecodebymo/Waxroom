@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { db, isFirebaseConfigured } from '../utils/firebase';
-import { collection, addDoc, getDocs, getDoc, setDoc, doc, query, orderBy, limit, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, getDoc, setDoc, doc, query, orderBy, limit, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 const buildGenres = (albums) => ['All', ...new Set(albums.map((album) => album.genre))];
 
@@ -344,6 +344,27 @@ export const useGalleryStore = create(
         } catch (err) {
           console.error('Failed to fetch rooms from Firestore:', err);
           set({ timelineError: `Load failed: ${err.message}` });
+        }
+      },
+      subscribeToTimelineRooms: () => {
+        if (!isFirebaseConfigured || !db) return () => {};
+        try {
+          const q = query(collection(db, 'community_rooms'), orderBy('updatedAt', 'desc'), limit(50));
+          const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const rooms = [];
+            querySnapshot.forEach((docSnap) => {
+              rooms.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            set({ timelineRooms: rooms, timelineError: null });
+          }, (err) => {
+            console.error('Firestore real-time sync failed:', err);
+            set({ timelineError: `Sync failed: ${err.message}` });
+          });
+          return unsubscribe;
+        } catch (err) {
+          console.error('Failed to subscribe to rooms from Firestore:', err);
+          set({ timelineError: `Subscription failed: ${err.message}` });
+          return () => {};
         }
       },
       backupRoomToCloud: async () => {
