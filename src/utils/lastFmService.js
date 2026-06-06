@@ -1,6 +1,7 @@
 export const fetchLastFmRoom = async (username, apiKey) => {
+  const activeKey = apiKey || import.meta.env.VITE_LASTFM_API_KEY || 'b84b768d1cac8272877739d0b4dba63a';
   // 1. Fetch Top Albums from Last.fm
-  const lastFmUrl = `https://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&user=${encodeURIComponent(username)}&api_key=${apiKey}&format=json&limit=15`;
+  const lastFmUrl = `https://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&user=${encodeURIComponent(username)}&api_key=${activeKey}&format=json&limit=15`;
   const res = await fetch(lastFmUrl);
   if (!res.ok) throw new Error('Last.fm user not found or private profile');
   const data = await res.json();
