@@ -272,16 +272,29 @@ export const useGalleryStore = create(
           set({ timelineError: `Sync failed: ${err.message}` });
         }
       },
-      unpublishRoom: async () => {
-        const { lastPublishedVaultName } = get();
-        const vaultId = lastPublishedVaultName?.toLowerCase().trim() || get().vaultName?.toLowerCase().trim();
+      unpublishRoom: async (customVaultId) => {
+        const { lastPublishedVaultName, vaultName } = get();
+        let vaultId = customVaultId || lastPublishedVaultName?.toLowerCase().trim() || vaultName?.toLowerCase().trim();
 
-        set({
-          isPublished: false,
-          publishedDescription: '',
-          lastPublishedVaultName: '',
-          timelineError: null
-        });
+        if (vaultId && vaultId.startsWith('room-')) {
+          vaultId = vaultId.substring(5);
+        }
+
+        const currentVaultId = vaultName?.toLowerCase().trim();
+        const lastPublishedId = lastPublishedVaultName?.toLowerCase().trim();
+
+        if (!customVaultId || 
+            customVaultId === currentVaultId || 
+            customVaultId === lastPublishedId || 
+            vaultId === currentVaultId || 
+            vaultId === lastPublishedId) {
+          set({
+            isPublished: false,
+            publishedDescription: '',
+            lastPublishedVaultName: '',
+            timelineError: null
+          });
+        }
 
         if (isFirebaseConfigured && db && vaultId) {
           try {
@@ -297,7 +310,11 @@ export const useGalleryStore = create(
         } else {
           // If in local-only fallback mode, filter out the local room
           set((state) => ({
-            timelineRooms: state.timelineRooms.filter((r) => r.id !== `room-${vaultId}` && r.id !== `room-${Date.now()}`),
+            timelineRooms: state.timelineRooms.filter((r) => 
+              r.id !== `room-${vaultId}` && 
+              r.id !== customVaultId && 
+              !r.id.includes(vaultId)
+            ),
           }));
         }
       },

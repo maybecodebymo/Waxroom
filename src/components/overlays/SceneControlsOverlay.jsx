@@ -41,6 +41,8 @@ function SceneControlsOverlay() {
   const backupRoomToCloud = useGalleryStore((state) => state.backupRoomToCloud);
   const restoreRoomFromCloud = useGalleryStore((state) => state.restoreRoomFromCloud);
   const isPublished = useGalleryStore((state) => state.isPublished);
+  const publishedDescription = useGalleryStore((state) => state.publishedDescription);
+  const lastPublishedVaultName = useGalleryStore((state) => state.lastPublishedVaultName);
   const unpublishRoom = useGalleryStore((state) => state.unpublishRoom);
   const publishRoom = useGalleryStore((state) => state.publishRoom);
   const myAlbums = useGalleryStore((state) => state.myAlbums);
@@ -55,7 +57,6 @@ function SceneControlsOverlay() {
   const [cloudError, setCloudError] = useState('');
   const [isCloudLoading, setIsCloudLoading] = useState(false);
   const [restoreName, setRestoreName] = useState('');
-  const [isPublishing, setIsPublishing] = useState(false);
   const [description, setDescription] = useState('');
 
   const isAddModalOpen = useGalleryStore((state) => state.isAddModalOpen);
@@ -90,7 +91,16 @@ function SceneControlsOverlay() {
   }, [isOpen]);
 
   const showExpanded = !isMobile || isExpanded || (!hasCompletedTour && !isViewingShared);
-  const isCurrentlyPublished = isPublished || timelineRooms.some(r => r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim());
+  const activeRoom = timelineRooms.find(r => 
+    r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim() ||
+    r.ownerName?.toLowerCase().trim() === lastPublishedVaultName?.toLowerCase().trim()
+  );
+  const isCurrentlyPublished = isPublished || !!activeRoom;
+  const displayDescription = publishedDescription || activeRoom?.description || '';
+
+  useEffect(() => {
+    setDescription(displayDescription);
+  }, [displayDescription]);
 
   return (
     <AnimatePresence>
@@ -367,7 +377,7 @@ function SceneControlsOverlay() {
                                 if (isCurrentlyPublished) {
                                   unpublishRoom();
                                 } else {
-                                  setIsPublishing((prev) => !prev);
+                                  publishRoom(description.trim());
                                 }
                               }}
                               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
@@ -383,39 +393,52 @@ function SceneControlsOverlay() {
                             </button>
                           </div>
 
-                          {/* Reveal description form inside settings if toggled on but not published yet */}
-                          {!isCurrentlyPublished && isPublishing && (
-                            <form
-                              onSubmit={async (e) => {
-                                e.preventDefault();
-                                if (!description.trim()) return;
-                                try {
-                                  await publishRoom(description.trim());
-                                  setDescription('');
-                                  setIsPublishing(false);
-                                } catch (err) {
-                                  console.error('Publish failed:', err);
-                                }
-                              }}
-                              className="mt-2 space-y-2 animate-fade-in text-zinc-900"
-                            >
-                              <textarea
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Tell the community about your wax shelf... (e.g. Vintage jazz & late night ambient)"
-                                rows={2}
-                                maxLength={100}
-                                className="w-full text-base md:text-[11px] rounded-lg border border-white/50 bg-white/80 p-2 outline-none placeholder:text-zinc-400 text-zinc-800 resize-none focus:bg-white focus:border-orange-500 transition-all shadow-sm"
-                              />
+                          <form
+                            onSubmit={async (e) => {
+                              e.preventDefault();
+                              try {
+                                await publishRoom(description.trim());
+                              } catch (err) {
+                                console.error('Publish failed:', err);
+                              }
+                            }}
+                            className="mt-2 space-y-2 text-zinc-900"
+                          >
+                            <textarea
+                              value={description}
+                              onChange={(e) => setDescription(e.target.value)}
+                              placeholder="Tell the community about your wax shelf... (e.g. Vintage jazz & late night ambient)"
+                              rows={2}
+                              maxLength={100}
+                              className="w-full text-base md:text-[11px] rounded-lg border border-white/50 bg-white/80 p-2 outline-none placeholder:text-zinc-400 text-zinc-800 resize-none focus:bg-white focus:border-orange-500 transition-all shadow-sm"
+                            />
+                            {isCurrentlyPublished ? (
+                              <div className="flex gap-2">
+                                <button
+                                  type="submit"
+                                  disabled={description.trim() === displayDescription || myAlbums.length === 0}
+                                  className="flex-1 rounded-lg text-zinc-800 py-1.5 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer disabled:opacity-40 disabled:pointer-events-none text-center"
+                                >
+                                  Save Changes
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => unpublishRoom()}
+                                  className="flex-1 rounded-lg text-red-655 text-red-600 py-1.5 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer text-center"
+                                >
+                                  Go Offline
+                                </button>
+                              </div>
+                            ) : (
                               <button
                                 type="submit"
-                                disabled={!description.trim() || myAlbums.length === 0}
+                                disabled={myAlbums.length === 0}
                                 className="w-full flex items-center justify-center gap-1.5 rounded-lg text-zinc-800 py-1.5 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
                               >
                                 <Send size={10} /> Go Live
                               </button>
-                            </form>
-                          )}
+                            )}
+                          </form>
                         </div>
                       )}
 

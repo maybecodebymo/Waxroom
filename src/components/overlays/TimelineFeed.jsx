@@ -17,6 +17,7 @@ function TimelineFeed() {
   const timelineError = useGalleryStore((state) => state.timelineError);
   const isPublished = useGalleryStore((state) => state.isPublished);
   const publishedDescription = useGalleryStore((state) => state.publishedDescription);
+  const lastPublishedVaultName = useGalleryStore((state) => state.lastPublishedVaultName);
   const unpublishRoom = useGalleryStore((state) => state.unpublishRoom);
 
   useEffect(() => {
@@ -27,16 +28,21 @@ function TimelineFeed() {
 
   const [description, setDescription] = useState('');
   const [justPublished, setJustPublished] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
 
-  const activeRoom = timelineRooms.find(r => r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim());
+  const activeRoom = timelineRooms.find(r => 
+    r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim() ||
+    r.ownerName?.toLowerCase().trim() === lastPublishedVaultName?.toLowerCase().trim()
+  );
   const isCurrentlyPublished = isPublished || !!activeRoom;
   const displayDescription = publishedDescription || activeRoom?.description || '';
+
+  useEffect(() => {
+    setDescription(displayDescription);
+  }, [displayDescription]);
 
   const handlePublish = (e) => {
     e.preventDefault();
     publishRoom(description.trim());
-    setDescription('');
     setJustPublished(true);
     setTimeout(() => setJustPublished(false), 3000);
   };
@@ -92,7 +98,9 @@ function TimelineFeed() {
                   if (isCurrentlyPublished) {
                     unpublishRoom();
                   } else {
-                    setIsPublishing((prev) => !prev);
+                    publishRoom(description.trim());
+                    setJustPublished(true);
+                    setTimeout(() => setJustPublished(false), 3000);
                   }
                 }}
                 className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
@@ -108,7 +116,15 @@ function TimelineFeed() {
               </button>
             </div>
             
-            {isCurrentlyPublished ? (
+            {justPublished ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="py-6 text-center text-xs font-display font-bold text-emerald-600 uppercase tracking-wider"
+              >
+                Room Published! 🎉
+              </motion.div>
+            ) : isCurrentlyPublished ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-1.5">
                   <span className="relative flex h-2 w-2">
@@ -120,18 +136,33 @@ function TimelineFeed() {
                   </span>
                 </div>
                 
-                <p className="text-xs font-body text-zinc-700 italic bg-white/50 border border-zinc-200/50 rounded-lg p-2.5 leading-relaxed break-words">
-                  "{displayDescription}"
-                </p>
+                <form onSubmit={handlePublish} className="space-y-2">
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Tell the community about your wax shelf... (e.g. Vintage jazz & late night ambient)"
+                    rows={2}
+                    maxLength={100}
+                    className="w-full text-base md:text-xs rounded-lg border border-white/50 bg-white/80 p-2.5 outline-none placeholder:text-zinc-400 text-zinc-800 resize-none focus:bg-white focus:border-orange-500 transition-all shadow-sm"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={description.trim() === displayDescription || myAlbums.length === 0}
+                      className="flex-1 rounded-xl text-zinc-800 py-2 px-3 text-xs font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer disabled:opacity-40 disabled:pointer-events-none text-center"
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => unpublishRoom()}
+                      className="flex-1 rounded-xl text-red-600 py-2 px-3 text-xs font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer text-center"
+                    >
+                      Go Offline
+                    </button>
+                  </div>
+                </form>
               </div>
-            ) : justPublished ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="py-6 text-center text-xs font-display font-bold text-emerald-600 uppercase tracking-wider"
-              >
-                Room Published! 🎉
-              </motion.div>
             ) : (
               <div className="space-y-2.5">
                 <div className="flex items-center gap-1.5">
@@ -143,29 +174,23 @@ function TimelineFeed() {
                   </span>
                 </div>
 
-                {(isPublishing || description) && (
-                  <form onSubmit={(e) => {
-                    e.preventDefault();
-                    handlePublish(e);
-                    setIsPublishing(false);
-                  }} className="space-y-2 animate-fade-in">
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Tell the community about your wax shelf... (e.g. Vintage jazz & late night ambient)"
-                      rows={2}
-                      maxLength={100}
-                      className="w-full text-base md:text-xs rounded-lg border border-white/50 bg-white/80 p-2.5 outline-none placeholder:text-zinc-400 text-zinc-800 resize-none focus:bg-white focus:border-orange-500 transition-all shadow-sm"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!description.trim() || myAlbums.length === 0}
-                      className="w-full flex items-center justify-center gap-1.5 rounded-xl text-zinc-800 py-2 px-4 text-xs font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-                    >
-                      <Send size={12} /> Go Live
-                    </button>
-                  </form>
-                )}
+                <form onSubmit={handlePublish} className="space-y-2">
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Tell the community about your wax shelf... (e.g. Vintage jazz & late night ambient)"
+                    rows={2}
+                    maxLength={100}
+                    className="w-full text-base md:text-xs rounded-lg border border-white/50 bg-white/80 p-2.5 outline-none placeholder:text-zinc-400 text-zinc-800 resize-none focus:bg-white focus:border-orange-500 transition-all shadow-sm"
+                  />
+                  <button
+                    type="submit"
+                    disabled={myAlbums.length === 0}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-xl text-zinc-800 py-2 px-4 text-xs font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    <Send size={12} /> Go Live
+                  </button>
+                </form>
               </div>
             )}
           </div>
@@ -184,7 +209,12 @@ function TimelineFeed() {
             ) : (
               timelineRooms.map((room) => {
                 const isCurrent = isViewingShared && sharedOwnerName === room.ownerName;
-                const isOwnRoom = !isViewingShared && room.ownerName === vaultName;
+                const isOwnRoom = !isViewingShared && (
+                  room.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim() ||
+                  room.ownerName?.toLowerCase().trim() === lastPublishedVaultName?.toLowerCase().trim() ||
+                  room.id === vaultName?.toLowerCase().trim() ||
+                  room.id === lastPublishedVaultName?.toLowerCase().trim()
+                );
 
                 return (
                   <div
@@ -215,7 +245,7 @@ function TimelineFeed() {
                             Yours
                           </span>
                           <button
-                            onClick={() => unpublishRoom()}
+                            onClick={() => unpublishRoom(room.id)}
                             className="text-[9px] font-display font-extrabold uppercase tracking-widest py-1 px-2.5 rounded-xl transition-all glass-btn text-zinc-800 cursor-pointer"
                             title="Unpublish room from feed"
                           >
