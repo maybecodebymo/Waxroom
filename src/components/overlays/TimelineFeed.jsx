@@ -27,6 +27,7 @@ function TimelineFeed() {
 
   const [description, setDescription] = useState('');
   const [justPublished, setJustPublished] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const activeRoom = timelineRooms.find(r => r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim());
   const isCurrentlyPublished = isPublished || !!activeRoom;
@@ -80,36 +81,47 @@ function TimelineFeed() {
         {/* Publish My Room Section */}
         {!isViewingShared && (
           <div className="mb-6 rounded-xl border border-white/40 bg-white/40 p-4 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-            <h3 className="text-xs font-display font-bold uppercase tracking-wider text-zinc-800 flex items-center gap-1.5 mb-2">
-              <Sparkles size={13} className="text-orange-500" /> Share My Room
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-display font-bold uppercase tracking-wider text-zinc-800 flex items-center gap-1.5">
+                <Sparkles size={13} className="text-orange-500" /> Share My Room
+              </h3>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  if (isCurrentlyPublished) {
+                    unpublishRoom();
+                  } else {
+                    setIsPublishing((prev) => !prev);
+                  }
+                }}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
+                  isCurrentlyPublished ? 'bg-orange-500' : 'bg-zinc-300'
+                }`}
+                aria-label="Toggle Live Status"
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    isCurrentlyPublished ? 'translate-x-4' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
             
             {isCurrentlyPublished ? (
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    <span className="text-[10px] font-display font-extrabold uppercase tracking-wider text-emerald-600">
-                      Live Profile Active
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => unpublishRoom()}
-                    className="text-[9px] font-display font-extrabold uppercase tracking-widest text-red-500 hover:text-red-755 transition cursor-pointer"
-                  >
-                    Unpublish / Delete
-                  </button>
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-[10px] font-display font-extrabold uppercase tracking-wider text-emerald-600">
+                    Live
+                  </span>
                 </div>
                 
                 <p className="text-xs font-body text-zinc-700 italic bg-white/50 border border-zinc-200/50 rounded-lg p-2.5 leading-relaxed break-words">
                   "{displayDescription}"
-                </p>
-                
-                <p className="text-[9.5px] font-body text-zinc-500 leading-relaxed">
-                  Your public profile is active. Any changes you make to your vault will sync to the community tab in real-time.
                 </p>
               </div>
             ) : justPublished ? (
@@ -121,23 +133,40 @@ function TimelineFeed() {
                 Room Published! 🎉
               </motion.div>
             ) : (
-              <form onSubmit={handlePublish} className="space-y-2">
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Tell the community about your wax shelf... (e.g. Vintage jazz & late night ambient)"
-                  rows={2}
-                  maxLength={100}
-                  className="w-full text-base md:text-xs rounded-lg border border-white/50 bg-white/80 p-2.5 outline-none placeholder:text-zinc-400 text-zinc-800 resize-none focus:bg-white focus:border-orange-500 transition-all shadow-sm"
-                />
-                <button
-                  type="submit"
-                  disabled={!description.trim() || myAlbums.length === 0}
-                  className="w-full flex items-center justify-center gap-1.5 rounded-xl text-zinc-800 py-2 px-4 text-xs font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-                >
-                  <Send size={12} /> Go Live
-                </button>
-              </form>
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-zinc-400"></span>
+                  </span>
+                  <span className="text-[10px] font-display font-extrabold uppercase tracking-wider text-zinc-500">
+                    Not Live
+                  </span>
+                </div>
+
+                {(isPublishing || description) && (
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    handlePublish(e);
+                    setIsPublishing(false);
+                  }} className="space-y-2 animate-fade-in">
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Tell the community about your wax shelf... (e.g. Vintage jazz & late night ambient)"
+                      rows={2}
+                      maxLength={100}
+                      className="w-full text-base md:text-xs rounded-lg border border-white/50 bg-white/80 p-2.5 outline-none placeholder:text-zinc-400 text-zinc-800 resize-none focus:bg-white focus:border-orange-500 transition-all shadow-sm"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!description.trim() || myAlbums.length === 0}
+                      className="w-full flex items-center justify-center gap-1.5 rounded-xl text-zinc-800 py-2 px-4 text-xs font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      <Send size={12} /> Go Live
+                    </button>
+                  </form>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -181,13 +210,13 @@ function TimelineFeed() {
                           Viewing
                         </span>
                       ) : isOwnRoom ? (
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex flex-col items-end gap-1.5">
                           <span className="text-[9px] font-display font-extrabold uppercase tracking-widest bg-zinc-700 text-white py-0.5 px-2.5 rounded-md shadow-sm">
                             Yours
                           </span>
                           <button
                             onClick={() => unpublishRoom()}
-                            className="text-[9px] font-display font-extrabold uppercase tracking-widest py-1 px-2 rounded-xl transition-all bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white cursor-pointer border border-red-500/20"
+                            className="text-[9px] font-display font-extrabold uppercase tracking-widest py-1 px-2.5 rounded-xl transition-all glass-btn text-zinc-800 cursor-pointer"
                             title="Unpublish room from feed"
                           >
                             Unpublish

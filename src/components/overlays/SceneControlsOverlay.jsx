@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Database, Link, SlidersHorizontal, Globe, Settings, X, UploadCloud, DownloadCloud, Cloud } from 'lucide-react';
+import { Database, Link, SlidersHorizontal, Globe, Settings, X, UploadCloud, DownloadCloud, Cloud, Send } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { compressToEncodedURIComponent } from 'lz-string';
 import { useGalleryStore } from '../../store/useGalleryStore';
@@ -42,6 +42,8 @@ function SceneControlsOverlay() {
   const restoreRoomFromCloud = useGalleryStore((state) => state.restoreRoomFromCloud);
   const isPublished = useGalleryStore((state) => state.isPublished);
   const unpublishRoom = useGalleryStore((state) => state.unpublishRoom);
+  const publishRoom = useGalleryStore((state) => state.publishRoom);
+  const myAlbums = useGalleryStore((state) => state.myAlbums);
 
   const [isMobile, setIsMobile] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -53,6 +55,8 @@ function SceneControlsOverlay() {
   const [cloudError, setCloudError] = useState('');
   const [isCloudLoading, setIsCloudLoading] = useState(false);
   const [restoreName, setRestoreName] = useState('');
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [description, setDescription] = useState('');
 
   const isAddModalOpen = useGalleryStore((state) => state.isAddModalOpen);
   const isRecommendationsOpen = useGalleryStore((state) => state.isRecommendationsOpen);
@@ -86,6 +90,7 @@ function SceneControlsOverlay() {
   }, [isOpen]);
 
   const showExpanded = !isMobile || isExpanded || (!hasCompletedTour && !isViewingShared);
+  const isCurrentlyPublished = isPublished || timelineRooms.some(r => r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim());
 
   return (
     <AnimatePresence>
@@ -343,7 +348,7 @@ function SceneControlsOverlay() {
                           <div className="flex items-center justify-between font-display text-[10px] font-bold uppercase tracking-wider text-zinc-750">
                             <span className="flex items-center gap-1.5">
                               <span className="relative flex h-1.5 w-1.5">
-                                {(isPublished || timelineRooms.some(r => r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim())) ? (
+                                {isCurrentlyPublished ? (
                                   <>
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
@@ -352,16 +357,65 @@ function SceneControlsOverlay() {
                                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-zinc-400"></span>
                                 )}
                               </span>
-                              {(isPublished || timelineRooms.some(r => r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim())) ? 'Room is Public' : 'Room is Private'}
+                              {isCurrentlyPublished ? 'Live' : 'Not Live'}
                             </span>
+                            
+                            {/* Toggle Switch */}
                             <button
                               type="button"
-                              onClick={() => unpublishRoom()}
-                              className="text-[9px] font-display font-extrabold uppercase tracking-widest text-red-500 hover:text-red-750 transition cursor-pointer"
+                              onClick={() => {
+                                if (isCurrentlyPublished) {
+                                  unpublishRoom();
+                                } else {
+                                  setIsPublishing((prev) => !prev);
+                                }
+                              }}
+                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
+                                isCurrentlyPublished ? 'bg-orange-500' : 'bg-zinc-300'
+                              }`}
+                              aria-label="Toggle Live Status"
                             >
-                              Unpublish / Delete
+                              <span
+                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                  isCurrentlyPublished ? 'translate-x-4' : 'translate-x-0'
+                                }`}
+                              />
                             </button>
                           </div>
+
+                          {/* Reveal description form inside settings if toggled on but not published yet */}
+                          {!isCurrentlyPublished && isPublishing && (
+                            <form
+                              onSubmit={async (e) => {
+                                e.preventDefault();
+                                if (!description.trim()) return;
+                                try {
+                                  await publishRoom(description.trim());
+                                  setDescription('');
+                                  setIsPublishing(false);
+                                } catch (err) {
+                                  console.error('Publish failed:', err);
+                                }
+                              }}
+                              className="mt-2 space-y-2 animate-fade-in text-zinc-900"
+                            >
+                              <textarea
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                placeholder="Tell the community about your wax shelf... (e.g. Vintage jazz & late night ambient)"
+                                rows={2}
+                                maxLength={100}
+                                className="w-full text-base md:text-[11px] rounded-lg border border-white/50 bg-white/80 p-2 outline-none placeholder:text-zinc-400 text-zinc-800 resize-none focus:bg-white focus:border-orange-500 transition-all shadow-sm"
+                              />
+                              <button
+                                type="submit"
+                                disabled={!description.trim() || myAlbums.length === 0}
+                                className="w-full flex items-center justify-center gap-1.5 rounded-lg text-zinc-800 py-1.5 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                              >
+                                <Send size={10} /> Go Live
+                              </button>
+                            </form>
+                          )}
                         </div>
                       )}
 
