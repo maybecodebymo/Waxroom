@@ -51,12 +51,22 @@ function SceneControlsOverlay() {
   const [isCloudLoading, setIsCloudLoading] = useState(false);
   const [restoreName, setRestoreName] = useState('');
 
+  const isAddModalOpen = useGalleryStore((state) => state.isAddModalOpen);
+  const isRecommendationsOpen = useGalleryStore((state) => state.isRecommendationsOpen);
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (isViewingShared || isAddModalOpen || isRecommendationsOpen || !vaultName || selectedAlbumId || isFeedOpen) {
+      setIsOpen(false);
+      setIsExpanded(false);
+    }
+  }, [isViewingShared, isAddModalOpen, isRecommendationsOpen, vaultName, selectedAlbumId, isFeedOpen]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -76,7 +86,7 @@ function SceneControlsOverlay() {
 
   return (
     <AnimatePresence>
-      {!selectedAlbumId && (
+      {!selectedAlbumId && !isViewingShared && !isAddModalOpen && !isRecommendationsOpen && !isFeedOpen && vaultName && (
         <motion.aside
           id="top-right-controls"
           initial={{ opacity: 0, y: -20 }}
@@ -176,15 +186,15 @@ function SceneControlsOverlay() {
                         onClick={toggleEditMode}
                         className={`flex w-full items-center justify-between rounded-xl p-2.5 transition-all cursor-pointer glass-btn ${
                           canEditAlbums
-                            ? 'bg-orange-500/10 text-orange-850 border-orange-300'
+                            ? 'bg-orange-500/10 text-orange-855 border-orange-300'
                             : 'text-zinc-650 border-white/40'
                         }`}
                       >
                         <div className="flex flex-col items-start font-display">
                           <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
-                            <Database size={13} /> Personalize Room
+                            <Database size={13} /> Customize layout
                           </span>
-                          <span className="mt-0.5 text-[8.5px] font-bold text-zinc-500 uppercase tracking-widest pl-[21px]">Saved Locally</span>
+                          <span className="mt-0.5 text-[8.5px] font-bold text-zinc-500 uppercase tracking-widest pl-[21px]">Offline mode</span>
                         </div>
                         <span className="text-[10px] font-display uppercase font-bold">{canEditAlbums ? 'On' : 'Off'}</span>
                       </button>
@@ -199,7 +209,7 @@ function SceneControlsOverlay() {
                             value={vaultName}
                             onChange={(e) => setVaultName(e.target.value)}
                             placeholder="e.g. Mo, Chill Beats, Retro" 
-                            className="w-full rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-[11px] font-semibold outline-none focus:border-orange-500 transition-all"
+                            className="w-full rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-base md:text-[11px] font-semibold outline-none focus:border-orange-500 focus:bg-white transition-all"
                           />
                         </div>
                       </div>
@@ -226,7 +236,7 @@ function SceneControlsOverlay() {
                         className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]"
                       >
                         <span className="flex items-center gap-2 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
-                          Last.fm Auto-Sync
+                          Sync your scrobbles
                         </span>
                         <div className="flex gap-2">
                            <input 
@@ -234,15 +244,15 @@ function SceneControlsOverlay() {
                              value={lfmUser}
                              disabled={isSyncing}
                              onChange={(e) => setLfmUser(e.target.value)}
-                             placeholder="Username" 
-                             className="min-w-0 flex-1 rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-[11px] outline-none"
+                             placeholder="Scrobble handle..." 
+                             className="min-w-0 flex-1 rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-base md:text-[11px] outline-none focus:border-orange-500 focus:bg-white transition-all"
                            />
                            <button 
                              type="submit" 
                              disabled={isSyncing || !lfmUser.trim()}
-                             className="shrink-0 rounded-lg text-zinc-950 px-3 py-1.5 text-[10px] font-display font-bold uppercase tracking-widest transition-all glass-btn cursor-pointer"
+                             className="shrink-0 rounded-lg text-zinc-955 px-3 py-1.5 text-[10px] font-display font-bold uppercase tracking-widest transition-all glass-btn cursor-pointer"
                            >
-                             {isSyncing ? 'Syncing...' : 'Sync'}
+                             {isSyncing ? 'Syncing...' : 'Import'}
                            </button>
                         </div>
                       </form>
@@ -275,7 +285,7 @@ function SceneControlsOverlay() {
                               className="w-full flex items-center justify-center gap-1.5 rounded-lg py-2 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn text-zinc-850 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
                             >
                               <UploadCloud size={12} />
-                              {isCloudLoading ? 'Backing up...' : 'Backup Current Room'}
+                              {isCloudLoading ? 'Backing up...' : 'Push to cloud'}
                             </button>
                             
                             <div className="h-px bg-white/20 my-1" />
@@ -289,8 +299,8 @@ function SceneControlsOverlay() {
                                 type="text" 
                                 value={restoreName}
                                 onChange={(e) => setRestoreName(e.target.value)}
-                                placeholder="Enter Room Name to Load" 
-                                className="min-w-0 flex-1 rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-[11px] outline-none"
+                                placeholder="Crate name to restore..." 
+                                className="min-w-0 flex-1 rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-base md:text-[11px] outline-none focus:border-orange-500 focus:bg-white transition-all"
                               />
                               <button 
                                 type="button" 
@@ -311,7 +321,7 @@ function SceneControlsOverlay() {
                                 }}
                                 className="shrink-0 rounded-lg text-zinc-955 px-3 py-1.5 text-[10px] font-display font-bold uppercase tracking-widest transition-all glass-btn cursor-pointer disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1"
                               >
-                                <DownloadCloud size={11} /> Load
+                                <DownloadCloud size={11} /> Restore
                               </button>
                             </div>
                           </div>

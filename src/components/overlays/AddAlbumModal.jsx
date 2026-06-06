@@ -424,8 +424,8 @@ function AddAlbumModal() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search iTunes to auto-fill..."
-                  className="w-full rounded-lg border border-white/50 bg-white/80 py-2 !pl-10 pr-3 text-sm outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
+                  placeholder="Search any record name..."
+                  className="w-full rounded-lg border border-white/50 bg-white/80 py-2 !pl-10 pr-3 text-base md:text-sm outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
                 />
                 {isSearching && (
                   <div className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin rounded-full border border-orange-500 border-t-transparent" />
@@ -459,7 +459,7 @@ function AddAlbumModal() {
                 required
                 value={artist}
                 onChange={(event) => setArtist(event.target.value)}
-                className="w-full rounded-lg border border-white/50 bg-white/80 px-3 py-2 outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
+                className="w-full rounded-lg border border-white/50 bg-white/80 px-3 py-2 text-base md:text-sm outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
               />
             </label>
 
@@ -469,18 +469,18 @@ function AddAlbumModal() {
                 required
                 value={albumTitle}
                 onChange={(event) => setAlbumTitle(event.target.value)}
-                className="w-full rounded-lg border border-white/50 bg-white/80 px-3 py-2 outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
+                className="w-full rounded-lg border border-white/50 bg-white/80 px-3 py-2 text-base md:text-sm outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
               />
             </label>
 
             <label className="grid gap-1.5">
-              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-650">Genre (creatable)</span>
+              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-650">Genre</span>
               <input
                 list="genre-list"
                 required
                 value={genre}
                 onChange={(event) => setGenre(event.target.value)}
-                className="w-full rounded-lg border border-white/50 bg-white/80 px-3 py-2 outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
+                className="w-full rounded-lg border border-white/50 bg-white/80 px-3 py-2 text-base md:text-sm outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
               />
               <datalist id="genre-list">
                 {genres.map((item) => (
@@ -516,7 +516,7 @@ function AddAlbumModal() {
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               rows={3}
-              className="w-full rounded-lg border border-white/50 bg-white/80 px-3 py-2 outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
+              className="w-full rounded-lg border border-white/50 bg-white/80 px-3 py-2 text-base md:text-sm outline-none shadow-sm focus:bg-white focus:border-orange-500 transition-all"
             />
           </label>
 
@@ -573,7 +573,7 @@ function AddAlbumModal() {
                     value={track.title}
                     onChange={(event) => updateTrack(track.id, 'title', event.target.value)}
                     placeholder={`Track ${index + 1} title`}
-                    className="w-full rounded-lg border border-white/50 bg-white/80 px-2 py-1 md:px-2.5 md:py-1.5 text-xs md:text-sm outline-none focus:bg-white focus:border-orange-500 transition-all"
+                    className="w-full rounded-lg border border-white/50 bg-white/80 px-2 py-1 md:px-2.5 md:py-1.5 text-base md:text-xs outline-none focus:bg-white focus:border-orange-500 transition-all"
                   />
 
                   <div className="flex items-center justify-center">
@@ -610,7 +610,7 @@ function AddAlbumModal() {
               disabled={!canSubmit}
               className="rounded-xl bg-orange-500 hover:bg-orange-600 px-5 py-2 text-xs font-display font-bold uppercase tracking-wider text-white shadow-[0_4px_12px_rgba(234,88,12,0.2)] transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none active:scale-95"
             >
-              {editingAlbumId ? 'Save Changes' : 'Add Album'}
+              {editingAlbumId ? 'Lock in changes' : 'Press to vinyl'}
             </button>
           </div>
       </motion.form>

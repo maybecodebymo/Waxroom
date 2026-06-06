@@ -76,10 +76,10 @@ function OnboardingModal() {
         </div>
 
         <h2 className="font-display text-2xl uppercase tracking-wider text-zinc-950 mb-3">
-          Claim Your Vinyl Space
+          Waxroom is yours
         </h2>
         <p className="text-xs font-body text-zinc-650 mb-6 leading-relaxed">
-          Every selector needs an identity. Drop your name or pseudonym to personalize your custom 3D vinyl vault.
+          Name your room to personalize your custom 3D crate, share your feed, and invite friends to dig through your records.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -91,15 +91,15 @@ function OnboardingModal() {
               maxLength={24}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder=""
-              className="w-full rounded-xl border border-white/50 bg-white/85 px-4 py-3.5 text-center text-lg font-bold tracking-wide text-zinc-900 outline-none transition-all shadow-sm focus:bg-white focus:border-orange-500"
+              placeholder="Your name or alias..."
+              className="w-full rounded-xl border border-white/50 bg-white/85 px-4 py-3.5 text-center text-lg font-bold tracking-wide text-zinc-900 placeholder:text-zinc-400 outline-none transition-all shadow-sm focus:bg-white focus:border-orange-500"
             />
           </div>
 
           {/* Live Preview Display */}
           <div className="rounded-xl bg-white/40 border border-white/40 p-4 text-center shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
             <span className="text-[10px] font-display font-bold uppercase tracking-widest text-zinc-400 block mb-1">
-              Your Room Title
+              Preview
             </span>
             <span className="font-display text-base tracking-wider text-zinc-950 uppercase break-all">
               {previewName}
@@ -111,7 +111,7 @@ function OnboardingModal() {
             disabled={!inputValue.trim()}
             className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 hover:bg-orange-600 py-3.5 px-6 text-sm font-display font-bold uppercase tracking-wider text-white shadow-[0_4px_12px_rgba(234,88,12,0.2)] transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none cursor-pointer active:scale-[0.98]"
           >
-            {inputValue.trim() ? `Drop the needle on ${previewName}` : "Drop a name to spin the wax"} <ArrowRight size={16} />
+            {inputValue.trim() ? "Step inside" : "Spin the wax"} <ArrowRight size={16} />
           </button>
         </form>
       </motion.div>

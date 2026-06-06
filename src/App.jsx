@@ -44,6 +44,25 @@ function App() {
   const loadSharedRoom = useGalleryStore((state) => state.loadSharedRoom);
   const closeSharedRoom = useGalleryStore((state) => state.closeSharedRoom);
   const isFeedOpen = useGalleryStore((state) => state.isFeedOpen);
+  const setFeedOpen = useGalleryStore((state) => state.setFeedOpen);
+  const isRecommendationsOpen = useGalleryStore((state) => state.isRecommendationsOpen);
+  const setRecommendationsOpen = useGalleryStore((state) => state.setRecommendationsOpen);
+
+  // Auto-close Feed & Recommendations when active modals/views open
+  useEffect(() => {
+    const hasActiveModal = isViewingShared || isAddModalOpen || selectedAlbumId || !vaultName;
+    if (hasActiveModal) {
+      if (isFeedOpen) setFeedOpen(false);
+      if (isRecommendationsOpen) setRecommendationsOpen(false);
+    }
+  }, [isViewingShared, isAddModalOpen, selectedAlbumId, vaultName, isFeedOpen, isRecommendationsOpen, setFeedOpen, setRecommendationsOpen]);
+
+  // Handle mutual exclusion between Feed drawer and Recommendations overlay
+  useEffect(() => {
+    if (isFeedOpen && isRecommendationsOpen) {
+      setRecommendationsOpen(false);
+    }
+  }, [isFeedOpen, isRecommendationsOpen, setRecommendationsOpen]);
 
   useEffect(() => {
     if (!canEditAlbums && isAddModalOpen) {

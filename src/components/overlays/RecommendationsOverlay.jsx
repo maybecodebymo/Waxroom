@@ -228,16 +228,16 @@ function RecommendationsOverlay() {
           className="absolute bottom-20 right-4 z-30 w-[min(92vw,380px)] rounded-2xl glass p-4 md:right-10 md:bottom-24 pointer-events-auto"
         >
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="flex items-center gap-2 text-xs font-display font-bold uppercase tracking-wider text-zinc-800">
-              <Sparkles size={14} className="text-orange-500" /> You Might Like
+             <h3 className="flex items-center gap-2 text-xs font-display font-bold uppercase tracking-wider text-zinc-800">
+              <Sparkles size={14} className="text-orange-500" /> Fresh Cuts
             </h3>
             <div className="flex items-center gap-2">
-              <button
+               <button
                 onClick={fetchRecommendations}
                 disabled={isLoading}
                 className="text-[9px] font-display font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-800 transition disabled:opacity-40 cursor-pointer"
               >
-                Refresh
+                Dig deeper
               </button>
               <button
                 onClick={() => setRecommendationsOpen(false)}
@@ -251,11 +251,11 @@ function RecommendationsOverlay() {
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 size={20} className="animate-spin text-orange-500" />
-              <span className="ml-2 text-xs font-display font-bold uppercase tracking-wider text-zinc-500">Analyzing room...</span>
+               <span className="ml-2 text-xs font-display font-bold uppercase tracking-wider text-zinc-500">Flipping through your crate...</span>
             </div>
           ) : recs.length === 0 ? (
-            <p className="py-6 text-center text-xs font-display font-bold uppercase tracking-wider text-zinc-400">
-              No recommendations available. Add more albums or try again!
+             <p className="py-6 text-center text-xs font-display font-bold uppercase tracking-wider text-zinc-400">
+              Silence on the turntable. Add some albums first!
             </p>
           ) : (
             <div className="max-h-[50vh] space-y-2.5 overflow-y-auto pr-1">
@@ -294,7 +294,7 @@ function RecommendationsOverlay() {
                             ? 'bg-emerald-500 text-white shadow-inner border border-emerald-500'
                             : 'glass-btn text-zinc-800'
                         }`}
-                        title={isAdded ? 'Added!' : 'Add to Room'}
+                        title={isAdded ? 'Added!' : 'Add to shelf'}
                       >
                         {isAdded ? '✓' : <Plus size={14} />}
                       </button>
