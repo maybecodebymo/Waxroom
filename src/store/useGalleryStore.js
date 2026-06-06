@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { db, isFirebaseConfigured } from '../utils/firebase';
+import { collection, addDoc, getDocs, getDoc, setDoc, doc, query, orderBy, limit } from 'firebase/firestore';
 
 const buildGenres = (albums) => ['All', ...new Set(albums.map((album) => album.genre))];
 
@@ -174,20 +176,91 @@ export const useGalleryStore = create(
           isViewingShared: false,
         });
       },
-      publishRoom: (description) => {
+      publishRoom: async (description) => {
         const myAlbums = get().myAlbums;
         const vaultName = get().vaultName || 'Anonymous';
         const newRoom = {
-          id: `room-${Date.now()}`,
           ownerName: vaultName,
           roomName: `${vaultName}'s Room`,
           description: description || 'No description provided.',
           genres: [...new Set(myAlbums.map((a) => a.genre))].slice(0, 3).join(', '),
           albums: myAlbums,
+          updatedAt: Date.now(),
         };
-        set((state) => ({
-          timelineRooms: [newRoom, ...state.timelineRooms],
-        }));
+
+        if (isFirebaseConfigured) {
+          try {
+            await addDoc(collection(db, 'community_rooms'), newRoom);
+            await get().fetchTimelineRooms();
+          } catch (err) {
+            console.error('Failed to publish room to Firestore:', err);
+            set((state) => ({
+              timelineRooms: [{ id: `room-${Date.now()}`, ...newRoom }, ...state.timelineRooms],
+            }));
+          }
+        } else {
+          set((state) => ({
+            timelineRooms: [{ id: `room-${Date.now()}`, ...newRoom }, ...state.timelineRooms],
+          }));
+        }
+      },
+      fetchTimelineRooms: async () => {
+        if (!isFirebaseConfigured) return;
+        try {
+          const q = query(collection(db, 'community_rooms'), orderBy('updatedAt', 'desc'), limit(50));
+          const querySnapshot = await getDocs(q);
+          const rooms = [];
+          querySnapshot.forEach((docSnap) => {
+            rooms.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          set({ timelineRooms: rooms });
+        } catch (err) {
+          console.error('Failed to fetch rooms from Firestore:', err);
+        }
+      },
+      backupRoomToCloud: async () => {
+        if (!isFirebaseConfigured) return { success: false, error: 'Firebase not configured' };
+        const vaultName = get().vaultName?.trim();
+        if (!vaultName) return { success: false, error: 'Please set a room name first' };
+        
+        try {
+          const docRef = doc(db, 'user_vaults', vaultName.toLowerCase());
+          await setDoc(docRef, {
+            albums: get().myAlbums,
+            vaultName: vaultName,
+            updatedAt: Date.now(),
+          });
+          return { success: true };
+        } catch (err) {
+          console.error('Failed to backup room to cloud:', err);
+          return { success: false, error: err.message };
+        }
+      },
+      restoreRoomFromCloud: async (targetName) => {
+        if (!isFirebaseConfigured) return { success: false, error: 'Firebase not configured' };
+        const name = targetName?.trim() || get().vaultName?.trim();
+        if (!name) return { success: false, error: 'Please enter a room name to restore' };
+
+        try {
+          const docRef = doc(db, 'user_vaults', name.toLowerCase());
+          const docSnap = await getDoc(docRef);
+          if (!docSnap.exists()) {
+            return { success: false, error: 'No backed-up room found with that name' };
+          }
+          const data = docSnap.data();
+          set({
+            myAlbums: data.albums || [],
+            albums: data.albums || [],
+            genres: buildGenres(data.albums || []),
+            vaultName: data.vaultName || name,
+            selectedAlbumId: null,
+            activeGenre: 'All',
+          });
+          return { success: true };
+        } catch (err) {
+          console.error('Failed to restore room from cloud:', err);
+          return { success: false, error: err.message };
+        }
       },
       setSceneControl: (key, value) =>
         set((state) => ({

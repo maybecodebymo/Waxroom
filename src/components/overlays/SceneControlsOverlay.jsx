@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Database, Link, SlidersHorizontal, Globe, Settings, X } from 'lucide-react';
+import { Database, Link, SlidersHorizontal, Globe, Settings, X, UploadCloud, DownloadCloud, Cloud } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { compressToEncodedURIComponent } from 'lz-string';
 import { useGalleryStore } from '../../store/useGalleryStore';
 import { fetchLastFmRoom } from '../../utils/lastFmService';
+import { isFirebaseConfigured } from '../../utils/firebase';
 
 const controlRows = [
   { key: 'globeRadius', label: 'Radius', min: 5.2, max: 10.5, step: 0.1 },
@@ -36,11 +37,19 @@ function SceneControlsOverlay() {
   const hasCompletedTour = useGalleryStore((state) => state.hasCompletedTour);
   const isViewingShared = useGalleryStore((state) => state.isViewingShared);
 
+  const backupRoomToCloud = useGalleryStore((state) => state.backupRoomToCloud);
+  const restoreRoomFromCloud = useGalleryStore((state) => state.restoreRoomFromCloud);
+
   const [isMobile, setIsMobile] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [lfmUser, setLfmUser] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+
+  const [cloudStatus, setCloudStatus] = useState('');
+  const [cloudError, setCloudError] = useState('');
+  const [isCloudLoading, setIsCloudLoading] = useState(false);
+  const [restoreName, setRestoreName] = useState('');
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -237,6 +246,88 @@ function SceneControlsOverlay() {
                            </button>
                         </div>
                       </form>
+
+                      {/* Cloud Sync Backup & Restore */}
+                      {isFirebaseConfigured ? (
+                        <div className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)] text-zinc-900">
+                          <span className="flex items-center gap-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
+                            <Cloud size={12} className="text-orange-500" />
+                            Cloud Sync & Backup
+                          </span>
+                          
+                          <div className="flex flex-col gap-2">
+                            <button
+                              type="button"
+                              disabled={isCloudLoading || !vaultName.trim()}
+                              onClick={async () => {
+                                setIsCloudLoading(true);
+                                setCloudStatus('');
+                                setCloudError('');
+                                const res = await backupRoomToCloud();
+                                setIsCloudLoading(false);
+                                if (res.success) {
+                                  setCloudStatus('Backed up successfully!');
+                                  setTimeout(() => setCloudStatus(''), 3000);
+                                } else {
+                                  setCloudError(res.error || 'Backup failed');
+                                }
+                              }}
+                              className="w-full flex items-center justify-center gap-1.5 rounded-lg py-2 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn text-zinc-850 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                            >
+                              <UploadCloud size={12} />
+                              {isCloudLoading ? 'Backing up...' : 'Backup Current Room'}
+                            </button>
+                            
+                            <div className="h-px bg-white/20 my-1" />
+                            
+                            <span className="text-[8.5px] font-display font-bold uppercase tracking-widest text-zinc-400">
+                              Restore / Sync Another Device
+                            </span>
+                            
+                            <div className="flex gap-2">
+                              <input 
+                                type="text" 
+                                value={restoreName}
+                                onChange={(e) => setRestoreName(e.target.value)}
+                                placeholder="Enter Room Name to Load" 
+                                className="min-w-0 flex-1 rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-[11px] outline-none"
+                              />
+                              <button 
+                                type="button" 
+                                disabled={isCloudLoading || !restoreName.trim()}
+                                onClick={async () => {
+                                  setIsCloudLoading(true);
+                                  setCloudStatus('');
+                                  setCloudError('');
+                                  const res = await restoreRoomFromCloud(restoreName);
+                                  setIsCloudLoading(false);
+                                  if (res.success) {
+                                    setCloudStatus('Room restored successfully!');
+                                    setRestoreName('');
+                                    setTimeout(() => setCloudStatus(''), 3000);
+                                  } else {
+                                    setCloudError(res.error || 'Restore failed');
+                                  }
+                                }}
+                                className="shrink-0 rounded-lg text-zinc-955 px-3 py-1.5 text-[10px] font-display font-bold uppercase tracking-widest transition-all glass-btn cursor-pointer disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1"
+                              >
+                                <DownloadCloud size={11} /> Load
+                              </button>
+                            </div>
+                          </div>
+
+                          {cloudStatus && (
+                            <p className="text-[9px] font-display font-bold uppercase text-emerald-600 mt-1">{cloudStatus}</p>
+                          )}
+                          {cloudError && (
+                            <p className="text-[9px] font-display font-bold uppercase text-red-600 mt-1">{cloudError}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-1.5 rounded-xl bg-zinc-100/50 border border-zinc-200/40 p-3 text-[9.5px] text-zinc-500 font-body leading-relaxed">
+                          <strong>Note:</strong> Set up Firebase keys in your <code>.env</code> file to enable cross-device cloud backups.
+                        </div>
+                      )}
 
                       <div className="h-px bg-white/40" />
 

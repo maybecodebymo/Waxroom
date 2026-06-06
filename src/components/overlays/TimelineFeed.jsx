@@ -1,17 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, User, Globe, Disc, Send } from 'lucide-react';
 import { useGalleryStore } from '../../store/useGalleryStore';
+import { isFirebaseConfigured } from '../../utils/firebase';
 
 function TimelineFeed() {
   const setFeedOpen = useGalleryStore((state) => state.setFeedOpen);
   const timelineRooms = useGalleryStore((state) => state.timelineRooms);
   const publishRoom = useGalleryStore((state) => state.publishRoom);
+  const fetchTimelineRooms = useGalleryStore((state) => state.fetchTimelineRooms);
   const myAlbums = useGalleryStore((state) => state.myAlbums);
   const vaultName = useGalleryStore((state) => state.vaultName);
   const isViewingShared = useGalleryStore((state) => state.isViewingShared);
   const sharedOwnerName = useGalleryStore((state) => state.sharedOwnerName);
   const loadSharedRoom = useGalleryStore((state) => state.loadSharedRoom);
+
+  useEffect(() => {
+    if (isFirebaseConfigured && fetchTimelineRooms) {
+      fetchTimelineRooms();
+    }
+  }, [fetchTimelineRooms]);
 
   const [description, setDescription] = useState('');
   const [justPublished, setJustPublished] = useState(false);
@@ -30,16 +38,23 @@ function TimelineFeed() {
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: '-100%', opacity: 0 }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="absolute bottom-0 left-0 top-0 z-40 w-[min(90vw,380px)] glass border-r border-white/50 border-y-0 border-l-0 rounded-r-3xl rounded-l-none shadow-[8px_0_40px_rgba(0,0,0,0.12)] p-5 md:p-6 overflow-y-auto pointer-events-auto flex flex-col justify-between"
+      className="absolute bottom-0 left-0 top-0 z-40 w-[min(90vw,380px)] bg-[#f5f5f3] border-r border-zinc-250 border-y-0 border-l-0 rounded-r-3xl rounded-l-none shadow-[8px_0_40px_rgba(0,0,0,0.12)] p-5 md:p-6 overflow-y-auto pointer-events-auto flex flex-col justify-between"
     >
       <div>
         {/* Drawer Header */}
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/30">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-200">
           <div className="flex items-center gap-2">
             <Globe size={18} className="text-zinc-800 animate-pulse" />
-            <h2 className="font-display text-lg uppercase tracking-wider text-zinc-900">
-              Community Feed
-            </h2>
+            <div className="flex flex-col">
+              <h2 className="font-display text-sm uppercase tracking-wider text-zinc-900 leading-none">
+                Community Feed
+              </h2>
+              <span className={`text-[8.5px] font-display font-bold uppercase tracking-wider mt-1 ${
+                isFirebaseConfigured ? 'text-emerald-600' : 'text-orange-500'
+              }`}>
+                {isFirebaseConfigured ? '✓ Cloud Synced' : '⚠️ Local Mode (Demo)'}
+              </span>
+            </div>
           </div>
           <button
             onClick={() => setFeedOpen(false)}
@@ -49,7 +64,13 @@ function TimelineFeed() {
           </button>
         </div>
 
-        <p className="text-xs font-body text-zinc-555 mb-5 leading-relaxed">
+        {!isFirebaseConfigured && (
+          <div className="mb-5 rounded-xl bg-orange-50/50 border border-orange-100 p-3 text-[10px] text-orange-800 font-body leading-relaxed">
+            <strong>Demo Mode:</strong> Configure Firebase keys in your <code>.env</code> file to share records and sync across devices in real-time.
+          </div>
+        )}
+
+        <p className="text-xs font-body text-zinc-600 mb-5 leading-relaxed">
           Step into other audiophiles' virtual vinyl rooms. Dig through their custom shelves and explore their tracklists!
         </p>
 
