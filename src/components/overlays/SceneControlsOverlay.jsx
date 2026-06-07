@@ -140,16 +140,37 @@ function SceneControlsOverlay() {
 
                 {/* Share Button */}
                 <button
-                  onClick={() => {
-                    const albums = useGalleryStore.getState().albums;
-                    const lightweight = albums.map(a => ({
-                      ...a,
-                      texture_url: a.texture_url?.startsWith('data:') ? '' : a.texture_url,
-                    }));
-                    const compressed = compressToEncodedURIComponent(JSON.stringify(lightweight));
-                    const displayName = vaultName || 'Anonymous';
-                    const byParam = `&by=${encodeURIComponent(displayName)}`;
-                    const shareUrl = `${window.location.origin}${window.location.pathname}?v=${compressed}${byParam}`;
+                  onClick={async () => {
+                    let shareUrl = '';
+                    
+                    if (isFirebaseConfigured) {
+                      if (isCurrentlyPublished) {
+                        const roomKey = (lastPublishedVaultName || vaultName || '').toLowerCase().trim();
+                        if (roomKey) {
+                          shareUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(roomKey)}`;
+                        }
+                      }
+                      
+                      if (!shareUrl) {
+                        const res = await useGalleryStore.getState().shareRoomToCloud();
+                        if (res.success && res.id) {
+                          shareUrl = `${window.location.origin}${window.location.pathname}?s=${res.id}`;
+                        }
+                      }
+                    }
+                    
+                    if (!shareUrl) {
+                      const albums = useGalleryStore.getState().albums;
+                      const lightweight = albums.map(a => ({
+                        ...a,
+                        texture_url: a.texture_url?.startsWith('data:') ? '' : a.texture_url,
+                      }));
+                      const compressed = compressToEncodedURIComponent(JSON.stringify(lightweight));
+                      const displayName = vaultName || 'Anonymous';
+                      const byParam = `&by=${encodeURIComponent(displayName)}`;
+                      shareUrl = `${window.location.origin}${window.location.pathname}?v=${compressed}${byParam}`;
+                    }
+
                     navigator.clipboard.writeText(shareUrl).then(() => {
                       setShareCopied(true);
                       setTimeout(() => setShareCopied(false), 3000);

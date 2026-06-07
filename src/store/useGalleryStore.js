@@ -208,6 +208,47 @@ export const useGalleryStore = create(
           isViewingShared: false,
         });
       },
+      shareRoomToCloud: async () => {
+        if (!isFirebaseConfigured || !db) {
+          return { success: false, error: 'Firebase not configured' };
+        }
+        const albums = get().albums;
+        const lightweight = albums.map(a => ({
+          ...a,
+          texture_url: a.texture_url?.startsWith('data:') ? '' : a.texture_url,
+        }));
+        const vaultName = get().vaultName || 'Anonymous';
+        try {
+          const docRef = await addDoc(collection(db, 'shared_rooms'), {
+            ownerName: vaultName,
+            albums: lightweight,
+            createdAt: Date.now()
+          });
+          return { success: true, id: docRef.id };
+        } catch (err) {
+          console.error('Failed to create shared room in Firestore:', err);
+          return { success: false, error: err.message };
+        }
+      },
+      fetchRoomFromDb: async (type, id) => {
+        if (!isFirebaseConfigured || !db || !id) return false;
+        try {
+          let docSnap;
+          if (type === 'live') {
+            docSnap = await getDoc(doc(db, 'community_rooms', id.toLowerCase().trim()));
+          } else if (type === 'shared') {
+            docSnap = await getDoc(doc(db, 'shared_rooms', id));
+          }
+          if (docSnap && docSnap.exists()) {
+            const data = docSnap.data();
+            get().loadSharedRoom(data.ownerName, data.albums);
+            return true;
+          }
+        } catch (err) {
+          console.error('Failed to fetch room from Firestore:', err);
+        }
+        return false;
+      },
       publishRoom: async (description) => {
         const myAlbums = get().myAlbums;
         const vaultName = get().vaultName || 'Anonymous';

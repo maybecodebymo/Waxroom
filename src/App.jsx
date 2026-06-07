@@ -47,6 +47,7 @@ function App() {
   const setFeedOpen = useGalleryStore((state) => state.setFeedOpen);
   const isRecommendationsOpen = useGalleryStore((state) => state.isRecommendationsOpen);
   const setRecommendationsOpen = useGalleryStore((state) => state.setRecommendationsOpen);
+  const fetchRoomFromDb = useGalleryStore((state) => state.fetchRoomFromDb);
 
   // Auto-close Feed & Recommendations when active modals/views open
   useEffect(() => {
@@ -93,6 +94,7 @@ function App() {
     const ogTitle = document.querySelector('meta[property="og:title"]');
     if (ogTitle) ogTitle.setAttribute('content', title);
     
+    // Update OG Description
     const ogDescription = document.querySelector('meta[property="og:description"]');
     if (ogDescription) ogDescription.setAttribute('content', description);
     
@@ -122,6 +124,9 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     const compressed = params.get('v');
     const owner = params.get('by');
+    const roomId = params.get('room');
+    const shareId = params.get('s');
+
     if (compressed) {
       try {
         const json = decompressFromEncodedURIComponent(compressed);
@@ -135,8 +140,16 @@ function App() {
       }
       // Clean the URL bar without reloading
       window.history.replaceState({}, '', window.location.pathname);
+    } else if (roomId) {
+      fetchRoomFromDb('live', roomId).then(() => {
+        window.history.replaceState({}, '', window.location.pathname);
+      });
+    } else if (shareId) {
+      fetchRoomFromDb('shared', shareId).then(() => {
+        window.history.replaceState({}, '', window.location.pathname);
+      });
     }
-  }, [loadSharedRoom]);
+  }, [loadSharedRoom, fetchRoomFromDb]);
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-[#f5f5f3] text-zinc-950">
