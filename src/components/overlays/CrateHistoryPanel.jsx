@@ -159,7 +159,7 @@ function CrateHistoryPanel() {
                   <Inbox size={24} className="mx-auto mb-2 opacity-40" />
                   <p className="text-[10px] font-display font-bold uppercase tracking-wider">Crate is empty</p>
                   <p className="text-[9px] font-body text-zinc-500 mt-1 normal-case leading-relaxed">
-                    Start playing music on Spotify or configure Last.fm to auto-collect scrobbles here.
+                    Configure Last.fm to auto-collect scrobbles here.
                   </p>
                 </div>
               )}
