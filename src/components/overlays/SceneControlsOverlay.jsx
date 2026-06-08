@@ -22,6 +22,7 @@ function SceneControlsOverlay() {
 
   const hasCompletedTour = useGalleryStore((state) => state.hasCompletedTour);
   const isViewingShared = useGalleryStore((state) => state.isViewingShared);
+  const tourStepIndex = useGalleryStore((state) => state.tourStepIndex || 0);
 
   const backupRoomToCloud = useGalleryStore((state) => state.backupRoomToCloud);
   const isPublished = useGalleryStore((state) => state.isPublished);
@@ -33,6 +34,7 @@ function SceneControlsOverlay() {
 
   const user = useGalleryStore((state) => state.user);
   const crateInbox = useGalleryStore((state) => state.crateInbox);
+  const hasUnseenCrateItems = useGalleryStore((state) => state.hasUnseenCrateItems);
   const lastFmUsername = useGalleryStore((state) => state.lastFmUsername);
   const setLastFmUsername = useGalleryStore((state) => state.setLastFmUsername);
 
@@ -70,6 +72,7 @@ function SceneControlsOverlay() {
   // Local inputs
   const [newRoomName, setNewRoomName] = useState('');
   const [isSpotifyImporting, setIsSpotifyImporting] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   useEffect(() => {
     if (lastFmUsername) {
@@ -105,7 +108,7 @@ function SceneControlsOverlay() {
     return () => el.removeEventListener('wheel', handleWheel);
   }, [isOpen]);
 
-  const showExpanded = !isMobile || isExpanded || (!hasCompletedTour && !isViewingShared);
+  const showExpanded = !isMobile || isExpanded || (!hasCompletedTour && !isViewingShared && tourStepIndex >= 3);
   const activeRoom = timelineRooms.find(r => 
     r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim() ||
     r.ownerName?.toLowerCase().trim() === lastPublishedVaultName?.toLowerCase().trim()
@@ -117,6 +120,14 @@ function SceneControlsOverlay() {
     setDescription(displayDescription);
   }, [displayDescription]);
 
+  const getActiveMenuLabel = () => {
+    if (isFeedOpen) return 'Feed';
+    if (isHistoryOpen) return 'Crate';
+    if (isOpen) return 'Tune';
+    if (shareCopied) return 'Copied!';
+    return 'Select Option';
+  };
+
   return (
     <AnimatePresence>
       {!selectedAlbumId && !isViewingShared && !isAddModalOpen && !isRecommendationsOpen && !isFeedOpen && !isHistoryOpen && vaultName && (
@@ -126,7 +137,7 @@ function SceneControlsOverlay() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.45, delay: 0.15 }}
-          className={`absolute right-4 top-4 z-30 md:right-8 md:top-8 ${
+          className={`absolute right-4 top-[72px] md:top-8 z-30 md:right-8 ${
             showExpanded ? 'w-[280px] md:w-[330px] rounded-2xl glass' : 'w-auto'
           }`}
         >
@@ -141,106 +152,216 @@ function SceneControlsOverlay() {
             </button>
           ) : (
             <>
-              <div className="flex w-full items-center gap-1.5 p-2 border-b border-white/20">
-                {/* Feed Button */}
-                <button
-                  onClick={() => setFeedOpen(!isFeedOpen)}
-                  className={`flex-1 py-1.5 rounded-xl text-[10px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 glass-btn ${
-                    isFeedOpen ? 'glass-btn-active font-bold' : 'text-zinc-800'
-                  }`}
-                  title="Explore Community Rooms"
-                >
-                  <Globe size={11} /> Feed
-                </button>
+              {isMobile ? (
+                /* Mobile Menu View */
+                <div className="w-full p-3 flex flex-col gap-2 relative">
+                  {/* Menu Title and Close button */}
+                  <div className="flex items-center justify-between pb-1.5 border-b border-white/20">
+                    <span className="text-[10px] font-display font-extrabold uppercase tracking-widest text-zinc-400">
+                      Menu Controls
+                    </span>
+                    <button
+                      onClick={() => {
+                        setIsExpanded(false);
+                        setIsOpen(false);
+                        setFeedOpen(false);
+                        setHistoryOpen(false);
+                      }}
+                      className="p-1 rounded-lg glass-btn text-zinc-500 hover:text-zinc-850 cursor-pointer flex items-center justify-center"
+                      title="Close Menu"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
 
-                {/* Crate Button */}
-                {canEditAlbums && (
-                  <button
-                    onClick={() => setHistoryOpen(!isHistoryOpen)}
-                    className={`flex-1 py-1.5 rounded-xl text-[10px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 glass-btn ${
-                      isHistoryOpen ? 'glass-btn-active font-bold' : 'text-zinc-800'
-                    }`}
-                    title="Inbox & History"
-                  >
-                    <Disc size={11} className={crateInbox?.length > 0 ? "animate-pulse text-orange-500" : ""} /> Crate
-                    {crateInbox?.length > 0 && (
-                      <span className="ml-0.5 bg-orange-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center text-[7.5px] font-bold">
-                        {crateInbox.length}
-                      </span>
+                  {/* Vertical stack of actions */}
+                  <div className="flex flex-col gap-1.5">
+                    {/* Feed Button */}
+                    <button
+                      id="feed-nav-btn"
+                      onClick={() => {
+                        setFeedOpen(!isFeedOpen);
+                        setHistoryOpen(false);
+                        setIsOpen(false);
+                      }}
+                      className={`w-full py-2.5 px-4 rounded-xl text-[10px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 hover:bg-white/40 ${
+                        isFeedOpen ? 'glass-btn-active font-bold' : 'glass-btn text-zinc-800'
+                      }`}
+                    >
+                      <Globe size={11} className={isFeedOpen ? 'animate-pulse' : ''} /> Feed
+                    </button>
+
+                    {/* Crate Button */}
+                    {canEditAlbums && (
+                      <button
+                        id="crate-nav-btn"
+                        onClick={() => {
+                          setHistoryOpen(!isHistoryOpen);
+                          setFeedOpen(false);
+                          setIsOpen(false);
+                        }}
+                        className={`w-full py-2.5 px-4 rounded-xl text-[10px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 hover:bg-white/40 ${
+                          isHistoryOpen
+                            ? 'glass-btn-active font-bold'
+                            : `glass-btn text-zinc-800 ${
+                                hasUnseenCrateItems && crateInbox?.length > 0
+                                  ? '!border-orange-500/30 !shadow-[0_0_6px_rgba(249,115,22,0.15)]'
+                                  : ''
+                              }`
+                        }`}
+                      >
+                        <Disc size={11} className={crateInbox?.length > 0 ? 'animate-pulse text-orange-500' : ''} /> Crate
+                      </button>
                     )}
-                  </button>
-                )}
 
-                {/* Share Button */}
-                <button
-                  onClick={async () => {
-                    let shareUrl = '';
-                    
-                    if (isFirebaseConfigured) {
-                      if (isCurrentlyPublished) {
-                        const uid = user ? user.uid : 'anonymous';
-                        shareUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(uid + "_" + activeRoomId)}`;
+                    {/* Share Button */}
+                    <button
+                      onClick={async () => {
+                        let shareUrl = '';
+                        if (isFirebaseConfigured) {
+                          if (isCurrentlyPublished) {
+                            const uid = user ? user.uid : 'anonymous';
+                            shareUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(uid + "_" + activeRoomId)}`;
+                          }
+                          if (!shareUrl) {
+                            const res = await useGalleryStore.getState().shareRoomToCloud();
+                            if (res.success && res.id) {
+                              shareUrl = `${window.location.origin}${window.location.pathname}?s=${res.id}`;
+                            }
+                          }
+                        }
+                        if (!shareUrl) {
+                          const albums = useGalleryStore.getState().albums;
+                          const lightweight = albums.map(a => ({
+                            ...a,
+                            texture_url: a.texture_url?.startsWith('data:') ? '' : a.texture_url,
+                          }));
+                          const compressed = compressToEncodedURIComponent(JSON.stringify(lightweight));
+                          const displayName = vaultName || 'Anonymous';
+                          const byParam = `&by=${encodeURIComponent(displayName)}`;
+                          shareUrl = `${window.location.origin}${window.location.pathname}?v=${compressed}${byParam}`;
+                        }
+
+                        navigator.clipboard.writeText(shareUrl).then(() => {
+                          setShareCopied(true);
+                          setTimeout(() => setShareCopied(false), 3500);
+                        }).catch((err) => {
+                          console.error('Clipboard write failed:', err);
+                        });
+                      }}
+                      className="w-full py-2.5 px-4 rounded-xl text-[10px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 glass-btn text-zinc-800"
+                    >
+                      <Link size={11} /> {shareCopied ? 'Copied Link!' : 'Share Room'}
+                    </button>
+
+                    {/* Tune Button */}
+                    <button
+                      id="tune-nav-btn"
+                      type="button"
+                      onClick={() => {
+                        setIsOpen(!isOpen);
+                        setFeedOpen(false);
+                        setHistoryOpen(false);
+                      }}
+                      className={`w-full py-2.5 px-4 rounded-xl text-[10px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 hover:bg-white/40 ${
+                        isOpen ? 'glass-btn-active font-bold' : 'glass-btn text-zinc-800'
+                      }`}
+                    >
+                      <SlidersHorizontal size={11} /> Tune
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Desktop View: Horizontal Row */
+                <div className="flex w-full items-center gap-1.5 p-2 border-b border-white/20">
+                  {/* Feed Button */}
+                  <button
+                    id="feed-nav-btn"
+                    onClick={() => setFeedOpen(!isFeedOpen)}
+                    className={`flex-1 py-1.5 rounded-xl text-[10px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 glass-btn ${
+                      isFeedOpen ? 'glass-btn-active font-bold' : 'text-zinc-800'
+                    }`}
+                    title="Explore Community Rooms"
+                  >
+                    <Globe size={11} /> Feed
+                  </button>
+
+                  {/* Crate Button */}
+                  {canEditAlbums && (
+                    <button
+                      id="crate-nav-btn"
+                      onClick={() => setHistoryOpen(!isHistoryOpen)}
+                      className={`flex-1 py-1.5 rounded-xl text-[10px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 glass-btn ${
+                        isHistoryOpen ? 'glass-btn-active font-bold' : 'text-zinc-800'
+                      } ${
+                        hasUnseenCrateItems && crateInbox?.length > 0 && !isHistoryOpen
+                          ? '!border-orange-500/30 !shadow-[0_0_6px_rgba(249,115,22,0.15)]'
+                          : ''
+                      }`}
+                      title="Inbox & History"
+                    >
+                      <Disc size={11} className={crateInbox?.length > 0 ? "animate-pulse text-orange-500" : ""} /> Crate
+                    </button>
+                  )}
+
+                  {/* Share Button */}
+                  <button
+                    onClick={async () => {
+                      let shareUrl = '';
+                      
+                      if (isFirebaseConfigured) {
+                        if (isCurrentlyPublished) {
+                          const uid = user ? user.uid : 'anonymous';
+                          shareUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(uid + "_" + activeRoomId)}`;
+                        }
+                        
+                        if (!shareUrl) {
+                          const res = await useGalleryStore.getState().shareRoomToCloud();
+                          if (res.success && res.id) {
+                            shareUrl = `${window.location.origin}${window.location.pathname}?s=${res.id}`;
+                          }
+                        }
                       }
                       
                       if (!shareUrl) {
-                        const res = await useGalleryStore.getState().shareRoomToCloud();
-                        if (res.success && res.id) {
-                          shareUrl = `${window.location.origin}${window.location.pathname}?s=${res.id}`;
-                        }
+                        const albums = useGalleryStore.getState().albums;
+                        const lightweight = albums.map(a => ({
+                          ...a,
+                          texture_url: a.texture_url?.startsWith('data:') ? '' : a.texture_url,
+                        }));
+                        const compressed = compressToEncodedURIComponent(JSON.stringify(lightweight));
+                        const displayName = vaultName || 'Anonymous';
+                        const byParam = `&by=${encodeURIComponent(displayName)}`;
+                        shareUrl = `${window.location.origin}${window.location.pathname}?v=${compressed}${byParam}`;
                       }
-                    }
-                    
-                    if (!shareUrl) {
-                      const albums = useGalleryStore.getState().albums;
-                      const lightweight = albums.map(a => ({
-                        ...a,
-                        texture_url: a.texture_url?.startsWith('data:') ? '' : a.texture_url,
-                      }));
-                      const compressed = compressToEncodedURIComponent(JSON.stringify(lightweight));
-                      const displayName = vaultName || 'Anonymous';
-                      const byParam = `&by=${encodeURIComponent(displayName)}`;
-                      shareUrl = `${window.location.origin}${window.location.pathname}?v=${compressed}${byParam}`;
-                    }
 
-                    navigator.clipboard.writeText(shareUrl).then(() => {
-                      setShareCopied(true);
-                      setTimeout(() => setShareCopied(false), 3500);
-                    }).catch((err) => {
-                      console.error('Clipboard write failed:', err);
-                    });
-                  }}
-                  className="flex-1 py-1.5 rounded-xl text-[10px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 glass-btn text-zinc-800"
-                  title="Share room link"
-                >
-                  <Link size={11} /> {shareCopied ? 'Copied!' : 'Share'}
-                </button>
-
-                {/* Tune Button */}
-                <button
-                  type="button"
-                  onClick={() => setIsOpen((prev) => !prev)}
-                  className={`flex-1 py-1.5 rounded-xl text-[10px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 glass-btn ${
-                    isOpen ? 'glass-btn-active font-bold' : 'text-zinc-800'
-                  }`}
-                  title="Tune Globe & Settings"
-                >
-                  <SlidersHorizontal size={11} /> Tune
-                </button>
-
-                {/* Close Button on mobile */}
-                {isMobile && (
-                  <button
-                    onClick={() => {
-                      setIsExpanded(false);
-                      setIsOpen(false);
+                      navigator.clipboard.writeText(shareUrl).then(() => {
+                        setShareCopied(true);
+                        setTimeout(() => setShareCopied(false), 3500);
+                      }).catch((err) => {
+                        console.error('Clipboard write failed:', err);
+                      });
                     }}
-                    className="p-1.5 rounded-lg glass-btn text-zinc-500 hover:text-zinc-800 cursor-pointer flex items-center justify-center"
-                    title="Collapse Menu"
+                    className="flex-1 py-1.5 rounded-xl text-[10px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 glass-btn text-zinc-800"
+                    title="Share room link"
                   >
-                    <X size={12} />
+                    <Link size={11} /> {shareCopied ? 'Copied!' : 'Share'}
                   </button>
-                )}
-              </div>
+
+                  {/* Tune Button */}
+                  <button
+                    id="tune-nav-btn"
+                    type="button"
+                    onClick={() => setIsOpen((prev) => !prev)}
+                    className={`flex-1 py-1.5 rounded-xl text-[10px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 glass-btn ${
+                      isOpen ? 'glass-btn-active font-bold' : 'text-zinc-800'
+                    }`}
+                    title="Tune Globe & Settings"
+                  >
+                    <SlidersHorizontal size={11} /> Tune
+                  </button>
+                </div>
+              )}
 
               <AnimatePresence initial={false}>
                 {isOpen && (
@@ -343,6 +464,21 @@ function SceneControlsOverlay() {
                         </div>
                       ) : null}
 
+                      <div className="flex flex-col gap-1.5 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+                        <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
+                          Room Name
+                        </span>
+                        <div className="relative flex items-center">
+                          <input 
+                            type="text" 
+                            value={vaultName}
+                            onChange={(e) => setVaultName(e.target.value)}
+                            placeholder="Name your vault" 
+                            className="w-full rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-base md:text-[11px] font-semibold outline-none focus:border-orange-500 focus:bg-white transition-all"
+                          />
+                        </div>
+                      </div>
+
                       {/* Multi-Room Manager */}
                       <div className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)] text-zinc-900">
                         <span className="flex items-center gap-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
@@ -399,21 +535,6 @@ function SceneControlsOverlay() {
                           >
                             Add
                           </button>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-1.5 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-                        <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
-                          Room Name
-                        </span>
-                        <div className="relative flex items-center">
-                          <input 
-                            type="text" 
-                            value={vaultName}
-                            onChange={(e) => setVaultName(e.target.value)}
-                            placeholder="Name your vault" 
-                            className="w-full rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-base md:text-[11px] font-semibold outline-none focus:border-orange-500 focus:bg-white transition-all"
-                          />
                         </div>
                       </div>
 

@@ -306,9 +306,9 @@ function AddAlbumModal() {
           e.preventDefault();
           onSubmit();
         }}
-        className="bg-[#f5f5f3] border border-zinc-200/80 max-h-[92vh] w-[min(95vw,820px)] overflow-y-auto rounded-2xl p-5 md:p-7 text-zinc-950 shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
+        className="bg-[#f5f5f3] border border-zinc-200/80 max-h-[92vh] w-[min(95vw,820px)] rounded-2xl text-zinc-955 shadow-[0_24px_60px_rgba(0,0,0,0.18)] flex flex-col overflow-hidden"
       >
-          <div className="mb-5 flex items-center justify-between border-b border-white/20 pb-3">
+          <div className="flex items-center justify-between border-b border-white/20 pb-3 p-5 md:p-7 md:pb-3 shrink-0">
             <div className="flex items-center gap-2">
               <h2 className="font-display text-xl uppercase tracking-wider text-zinc-900">
                 {editingAlbumId ? 'Edit Record' : 'Add New Record'}
@@ -333,7 +333,8 @@ function AddAlbumModal() {
             </button>
           </div>
 
-          <AnimatePresence>
+          <div className="flex-1 overflow-y-auto px-5 py-4 md:px-7 md:py-6 pr-3 md:pr-5 min-h-0">
+            <AnimatePresence>
             {showTutorial && (
               <motion.div
                 initial={{ opacity: 0, height: 0, marginBottom: 0 }}
@@ -604,7 +605,9 @@ function AddAlbumModal() {
             </div>
           </div>
 
-          <div className="mt-6 flex justify-end">
+          </div>
+
+          <div className="flex justify-end p-5 pt-3 md:p-7 md:pt-4 border-t border-white/20 shrink-0">
             <button
               type="submit"
               disabled={!canSubmit}

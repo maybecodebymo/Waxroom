@@ -50,11 +50,11 @@ function TimelineFeed() {
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: '-100%', opacity: 0 }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="absolute bottom-0 left-0 top-0 z-40 w-[min(90vw,380px)] bg-[#f5f5f3] border-r border-zinc-250 border-y-0 border-l-0 rounded-r-3xl rounded-l-none shadow-[8px_0_40px_rgba(0,0,0,0.12)] p-5 md:p-6 overflow-y-auto pointer-events-auto flex flex-col justify-between"
+      className="absolute bottom-0 left-0 top-0 z-40 w-[min(90vw,380px)] bg-[#f5f5f3] border-r border-zinc-250 border-y-0 border-l-0 rounded-r-3xl rounded-l-none shadow-[8px_0_40px_rgba(0,0,0,0.12)] p-5 md:p-6 overflow-hidden pointer-events-auto flex flex-col justify-between"
     >
-      <div>
+      <div className="flex flex-col flex-1 min-h-0">
         {/* Drawer Header */}
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-200">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-200 shrink-0">
           <div className="flex items-center gap-2">
             <Globe size={18} className="text-zinc-800 animate-pulse" />
             <div className="flex flex-col">
@@ -71,7 +71,8 @@ function TimelineFeed() {
           </button>
         </div>
 
-        <p className="text-xs font-body text-zinc-600 mb-5 leading-relaxed">
+        <div className="flex-1 overflow-y-auto pr-2 space-y-5">
+          <p className="text-xs font-body text-zinc-600 mb-5 leading-relaxed">
           Step into other audiophiles' virtual vinyl rooms. Dig through their custom shelves and explore their tracklists!
         </p>
 
@@ -302,10 +303,11 @@ function TimelineFeed() {
             )}
           </div>
         </div>
+        </div>
       </div>
 
       {/* Footer Branding */}
-      <div className="pt-4 border-t border-white/25 flex items-center justify-center text-[9px] font-display text-zinc-400 font-bold uppercase tracking-wider">
+      <div className="pt-4 mt-4 border-t border-white/25 flex items-center justify-center text-[9px] font-display text-zinc-400 font-bold uppercase tracking-wider shrink-0">
         <span>Waxroom Community © 2026</span>
       </div>
     </motion.aside>

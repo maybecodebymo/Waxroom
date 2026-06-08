@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Disc, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, Disc, Volume2, VolumeX, Plus, Check } from 'lucide-react';
 import { useGalleryStore } from '../../store/useGalleryStore';
 
 function NowPlayingPanel() {
@@ -11,6 +11,14 @@ function NowPlayingPanel() {
   const isPlayingStore = useGalleryStore((state) => state.isPlaying);
   const livePlayback = useGalleryStore((state) => state.livePlayback);
   const activeRoomPlayback = useGalleryStore((state) => state.activeRoomPlayback);
+  const selectedAlbumId = useGalleryStore((state) => state.selectedAlbumId);
+
+  const selectAlbum = useGalleryStore((state) => state.selectAlbum);
+  const albums = useGalleryStore((state) => state.albums);
+  const crateInbox = useGalleryStore((state) => state.crateInbox);
+  const addToShelfFromCrate = useGalleryStore((state) => state.addToShelfFromCrate);
+  const addAlbum = useGalleryStore((state) => state.addAlbum);
+  const canEditAlbums = useGalleryStore((state) => state.canEditAlbums);
 
   // Preview player local state
   const [localPlaying, setLocalPlaying] = useState(false);
@@ -74,6 +82,7 @@ function NowPlayingPanel() {
       if (!audioRef.current) {
         audioRef.current = new Audio(current.previewUrl);
         audioRef.current.loop = true;
+        audioRef.current.volume = 0.35;
         audioRef.current.addEventListener('ended', () => setLocalPlaying(false));
       }
       audioRef.current.play()
@@ -82,6 +91,94 @@ function NowPlayingPanel() {
     }
   };
 
+  const isAlreadyAdded = useMemo(() => {
+    if (!current) return false;
+    return albums.some(
+      (a) =>
+        a.album_title.toLowerCase().trim() === current.album.toLowerCase().trim() &&
+        a.artist.toLowerCase().trim() === current.artist.toLowerCase().trim()
+    );
+  }, [albums, current]);
+
+  const matchingCrateItem = useMemo(() => {
+    if (!current) return null;
+    return crateInbox.find(
+      (a) =>
+        a.album_title.toLowerCase().trim() === current.album.toLowerCase().trim() &&
+        a.artist.toLowerCase().trim() === current.artist.toLowerCase().trim()
+    );
+  }, [crateInbox, current]);
+
+  const handleDirectAdd = (e) => {
+    e.stopPropagation();
+    if (!current || isAlreadyAdded || !canEditAlbums || isViewingShared) return;
+
+    if (matchingCrateItem) {
+      addToShelfFromCrate(matchingCrateItem.id);
+    } else {
+      const newAlbum = {
+        id: `a-${Date.now()}`,
+        artist: current.artist,
+        album_title: current.album,
+        genre: 'Alt',
+        rating: 8,
+        description: 'Added directly from Now Playing.',
+        texture_url: current.albumArtUrl,
+        tracklist: [
+          { title: current.title, category: 'hit', previewUrl: current.previewUrl }
+        ]
+      };
+      addAlbum(newAlbum);
+    }
+  };
+
+  const handlePanelClick = () => {
+    if (!current) return;
+
+    // Check if in albums
+    const matchingAlbum = albums.find(
+      (a) =>
+        a.album_title.toLowerCase().trim() === current.album.toLowerCase().trim() &&
+        a.artist.toLowerCase().trim() === current.artist.toLowerCase().trim()
+    );
+
+    if (matchingAlbum) {
+      selectAlbum(matchingAlbum.id);
+      return;
+    }
+
+    // Check if in crateInbox
+    if (matchingCrateItem) {
+      selectAlbum(matchingCrateItem.id);
+      return;
+    }
+
+    // Create transient album
+    const tempId = `temp-${Date.now()}`;
+    const tempAlbum = {
+      id: tempId,
+      artist: current.artist,
+      album_title: current.album,
+      genre: 'Alt',
+      rating: 8,
+      description: 'Automatically discovered via active listening.',
+      texture_url: current.albumArtUrl,
+      tracklist: current.previewUrl ? [
+        { title: current.title, category: 'hit', previewUrl: current.previewUrl }
+      ] : [
+        { title: current.title, category: 'hit' }
+      ]
+    };
+
+    useGalleryStore.setState((state) => ({
+      crateInbox: [...state.crateInbox, tempAlbum],
+      hasUnseenCrateItems: true
+    }));
+    selectAlbum(tempId);
+  };
+
+  // Hide the banner if any album details modal is active
+  if (selectedAlbumId) return null;
   if (!current) return null;
 
   const ownerDisplayName = isViewingShared ? (sharedOwnerName || 'Selector') : (vaultName || 'Selector');
@@ -95,7 +192,8 @@ function NowPlayingPanel() {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 20 }}
           transition={{ duration: 0.4 }}
-          className="glass rounded-2xl p-4 shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-white/60 text-zinc-950 text-center space-y-4"
+          onClick={handlePanelClick}
+          className="glass rounded-2xl p-4 shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-white/60 text-zinc-955 text-center space-y-4 cursor-pointer hover:bg-white/85 hover:-translate-y-0.5 transition-all"
         >
           <div className="space-y-1">
             <span className="flex items-center justify-center gap-1.5 text-[9px] font-display font-extrabold uppercase tracking-widest text-zinc-500">
@@ -150,6 +248,26 @@ function NowPlayingPanel() {
             </p>
           </div>
 
+          {/* Add to Room Button (if can edit and not sharing) */}
+          {canEditAlbums && !isViewingShared && (
+            <div className="pt-1">
+              {isAlreadyAdded ? (
+                <div className="w-full flex items-center justify-center gap-1 py-1.5 text-[9px] font-display font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50/50 border border-emerald-200/40 rounded-xl shadow-sm">
+                  <Check size={11} />
+                  Added to Room
+                </div>
+              ) : (
+                <button
+                  onClick={handleDirectAdd}
+                  className="w-full flex items-center justify-center gap-1.5 rounded-xl py-1.5 px-3 text-[9px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer shadow-sm bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                  <Plus size={11} />
+                  Add to Room
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Audio Preview controls */}
           {current.previewUrl && (
             <div className="pt-1">
@@ -185,7 +303,8 @@ function NowPlayingPanel() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 15 }}
           transition={{ duration: 0.35 }}
-          className="glass rounded-xl p-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-white/60 pointer-events-auto flex items-center justify-between gap-3 text-zinc-950"
+          onClick={handlePanelClick}
+          className="glass rounded-xl p-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-white/60 pointer-events-auto flex items-center justify-between gap-3 text-zinc-955 cursor-pointer hover:bg-white/85 transition-all"
         >
           <div className="flex items-center gap-2 min-w-0">
             {/* Spinning disc avatar */}
@@ -221,16 +340,36 @@ function NowPlayingPanel() {
             </div>
           </div>
 
-          {current.previewUrl && (
-            <button
-              onClick={togglePreview}
-              className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-sm ${
-                localPlaying ? 'bg-zinc-950 text-[#f5f5f3]' : 'glass-btn text-zinc-800'
-              }`}
-            >
-              {localPlaying ? <Pause size={12} /> : <Play size={12} className="ml-0.5" />}
-            </button>
-          )}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {canEditAlbums && !isViewingShared && (
+              <>
+                {isAlreadyAdded ? (
+                  <span className="h-8 w-8 rounded-full flex items-center justify-center text-emerald-600 bg-emerald-50 border border-emerald-200/40 shadow-sm">
+                    <Check size={14} />
+                  </span>
+                ) : (
+                  <button
+                    onClick={handleDirectAdd}
+                    className="h-8 w-8 rounded-full flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white cursor-pointer active:scale-95 transition-all shadow-sm"
+                    title="Add directly to Room"
+                  >
+                    <Plus size={14} />
+                  </button>
+                )}
+              </>
+            )}
+
+            {current.previewUrl && (
+              <button
+                onClick={togglePreview}
+                className={`h-8 w-8 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-sm ${
+                  localPlaying ? 'bg-zinc-950 text-[#f5f5f3]' : 'glass-btn text-zinc-800'
+                }`}
+              >
+                {localPlaying ? <Pause size={12} /> : <Play size={12} className="ml-0.5" />}
+              </button>
+            )}
+          </div>
         </motion.div>
       </div>
     </>

@@ -200,7 +200,8 @@ function LiveListeningManager() {
               };
 
               useGalleryStore.setState((state) => ({
-                crateInbox: [newAlbum, ...state.crateInbox].slice(0, 10)
+                crateInbox: [newAlbum, ...state.crateInbox].slice(0, 10),
+                hasUnseenCrateItems: true
               }));
               
               useGalleryStore.getState().backupRoomToCloud();
@@ -221,8 +222,8 @@ function LiveListeningManager() {
 
     pollNowPlaying();
 
-    // Poll every 12 seconds
-    const interval = setInterval(pollNowPlaying, 12000);
+    // Poll every 4 seconds
+    const interval = setInterval(pollNowPlaying, 4000);
     return () => clearInterval(interval);
   }, [
     lastFmUsername,

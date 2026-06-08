@@ -34,7 +34,7 @@ const formatRoomName = (name) => {
 };
 
 function App() {
-  const sharedRoomIdRef = useRef(null);
+  const [sharedRoomId, setSharedRoomId] = useState(null);
   const isAddModalOpen = useGalleryStore((state) => state.isAddModalOpen);
   const canEditAlbums = useGalleryStore((state) => state.canEditAlbums);
   const setAddModalOpen = useGalleryStore((state) => state.setAddModalOpen);
@@ -91,7 +91,10 @@ function App() {
 
   // Initialize user authentication on mount
   useEffect(() => {
-    initializeAuth();
+    const unsubscribe = initializeAuth();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [initializeAuth]);
 
   // Catch Spotify OAuth hash redirect token
@@ -112,12 +115,11 @@ function App() {
 
   // Subscribe to live room playback if visiting another user's live room
   useEffect(() => {
-    const roomId = sharedRoomIdRef.current;
-    if (roomId && isViewingShared) {
-      const unsubscribe = subscribeToActiveRoomPlayback(roomId);
-      return () => unsubscribe();
+    if (sharedRoomId && isViewingShared) {
+      const unsubscribe = subscribeToActiveRoomPlayback(sharedRoomId);
+      return () => unsubscribe?.();
     }
-  }, [isViewingShared, subscribeToActiveRoomPlayback]);
+  }, [sharedRoomId, isViewingShared, subscribeToActiveRoomPlayback]);
 
   useEffect(() => {
     if (!canEditAlbums && isAddModalOpen) {
@@ -195,7 +197,7 @@ function App() {
       // Clean the URL bar without reloading
       window.history.replaceState({}, '', window.location.pathname);
     } else if (roomId) {
-      sharedRoomIdRef.current = roomId;
+      setSharedRoomId(roomId);
       fetchRoomFromDb('live', roomId).then(() => {
         window.history.replaceState({}, '', window.location.pathname);
       });

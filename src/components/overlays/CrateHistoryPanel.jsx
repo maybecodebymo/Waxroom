@@ -10,6 +10,59 @@ function CrateHistoryPanel() {
   const clearCrate = useGalleryStore((state) => state.clearCrate);
   const listeningHistory = useGalleryStore((state) => state.listeningHistory);
   const canEditAlbums = useGalleryStore((state) => state.canEditAlbums);
+  const albums = useGalleryStore((state) => state.albums);
+  const selectAlbum = useGalleryStore((state) => state.selectAlbum);
+
+  const handleTrackClick = (track) => {
+    if (!track.albumTitle) return;
+
+    // Check if in albums (our collection)
+    const matchingAlbum = albums.find(
+      (a) =>
+        a.album_title.toLowerCase().trim() === track.albumTitle.toLowerCase().trim() &&
+        a.artist.toLowerCase().trim() === track.artistName.toLowerCase().trim()
+    );
+
+    if (matchingAlbum) {
+      selectAlbum(matchingAlbum.id);
+      return;
+    }
+
+    // Check if in crateInbox
+    const matchingCrateItem = crateInbox.find(
+      (a) =>
+        a.album_title.toLowerCase().trim() === track.albumTitle.toLowerCase().trim() &&
+        a.artist.toLowerCase().trim() === track.artistName.toLowerCase().trim()
+    );
+
+    if (matchingCrateItem) {
+      selectAlbum(matchingCrateItem.id);
+      return;
+    }
+
+    // Create transient album in crateInbox
+    const tempId = `temp-${Date.now()}`;
+    const tempAlbum = {
+      id: tempId,
+      artist: track.artistName,
+      album_title: track.albumTitle,
+      genre: 'Alt',
+      rating: 8,
+      description: 'Automatically discovered via active listening.',
+      texture_url: track.albumArtUrl,
+      tracklist: track.previewUrl ? [
+        { title: track.trackTitle, category: 'hit', previewUrl: track.previewUrl }
+      ] : [
+        { title: track.trackTitle, category: 'hit' }
+      ]
+    };
+
+    useGalleryStore.setState((state) => ({
+      crateInbox: [...state.crateInbox, tempAlbum],
+      hasUnseenCrateItems: true
+    }));
+    selectAlbum(tempId);
+  };
 
   return (
     <motion.aside
@@ -17,7 +70,7 @@ function CrateHistoryPanel() {
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: '-100%', opacity: 0 }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="absolute bottom-0 left-0 top-0 z-40 w-[min(90vw,380px)] bg-[#f5f5f3] border-r border-zinc-250 border-y-0 border-l-0 rounded-r-3xl rounded-l-none shadow-[8px_0_40px_rgba(0,0,0,0.12)] p-5 md:p-6 overflow-y-auto pointer-events-auto flex flex-col justify-between"
+      className="absolute bottom-0 left-0 top-0 z-40 w-[min(90vw,380px)] bg-[#f5f5f3] border-r border-zinc-250 border-y-0 border-l-0 rounded-r-3xl rounded-l-none shadow-[8px_0_40px_rgba(0,0,0,0.12)] p-5 md:p-6 overflow-hidden pointer-events-auto flex flex-col justify-between"
     >
       <div className="flex-1 flex flex-col min-h-0">
         {/* Drawer Header */}
@@ -39,7 +92,7 @@ function CrateHistoryPanel() {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto pr-1 space-y-6">
+        <div className="flex-1 overflow-y-auto pr-2 space-y-6">
           {/* Crate Inbox Section */}
           {canEditAlbums && (
             <div className="space-y-3">
@@ -84,10 +137,10 @@ function CrateHistoryPanel() {
                         <button
                           type="button"
                           onClick={() => addToShelfFromCrate(album.id)}
-                          className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg px-2.5 py-1 text-[9px] font-display font-bold uppercase tracking-wider cursor-pointer active:scale-95 transition-all shadow-sm"
-                          title="Add to Room Shelf"
+                          className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-2.5 py-1 text-[9px] font-display font-bold uppercase tracking-wider cursor-pointer active:scale-95 transition-all shadow-sm"
+                          title="Add to Room"
                         >
-                          Keep
+                          Add to Room
                         </button>
                         <button
                           type="button"
@@ -123,7 +176,11 @@ function CrateHistoryPanel() {
             {listeningHistory && listeningHistory.length > 0 ? (
               <div className="space-y-2">
                 {listeningHistory.map((track, index) => (
-                  <div key={index} className="flex items-center gap-2.5 bg-white/40 border border-white/20 rounded-xl p-2.5 shadow-sm text-zinc-850">
+                  <div
+                    key={index}
+                    onClick={() => handleTrackClick(track)}
+                    className="flex items-center gap-2.5 bg-white/40 border border-white/20 rounded-xl p-2.5 shadow-sm text-zinc-850 cursor-pointer hover:bg-white/65 hover:border-white/45 transition duration-150 active:scale-[0.98]"
+                  >
                     <img
                       src={track.albumArtUrl || '/placeholder-album.png'}
                       alt={track.albumTitle || 'Track Art'}

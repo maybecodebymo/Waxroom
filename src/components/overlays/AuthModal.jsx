@@ -28,18 +28,24 @@ function AuthModal({ onClose }) {
           // Link anonymous session with Google atomically
           await linkWithPopup(currentUser, provider);
           await backupRoomToCloud();
+          onClose();
         } catch (linkErr) {
           if (linkErr.code === 'auth/credential-already-in-use') {
-            // If Google credential already exists, sign in directly to that account
-            await signInWithPopup(auth, provider);
+            const confirmMerge = window.confirm(
+              "This Google account is already linked to another Waxroom. Signing in will switch to that room and discard your current local changes. Do you want to continue?"
+            );
+            if (confirmMerge) {
+              await signInWithPopup(auth, provider);
+              onClose();
+            }
           } else {
             throw linkErr;
           }
         }
       } else {
         await signInWithPopup(auth, provider);
+        onClose();
       }
-      onClose();
     } catch (err) {
       console.error('Google authentication failed:', err);
       setError(err.message || 'Google sign-in failed');
@@ -61,17 +67,24 @@ function AuthModal({ onClose }) {
           // Link anonymous session with Apple atomically
           await linkWithPopup(currentUser, provider);
           await backupRoomToCloud();
+          onClose();
         } catch (linkErr) {
           if (linkErr.code === 'auth/credential-already-in-use') {
-            await signInWithPopup(auth, provider);
+            const confirmMerge = window.confirm(
+              "This Apple account is already linked to another Waxroom. Signing in will switch to that room and discard your current local changes. Do you want to continue?"
+            );
+            if (confirmMerge) {
+              await signInWithPopup(auth, provider);
+              onClose();
+            }
           } else {
             throw linkErr;
           }
         }
       } else {
         await signInWithPopup(auth, provider);
+        onClose();
       }
-      onClose();
     } catch (err) {
       console.error('Apple authentication failed:', err);
       setError(err.message || 'Apple sign-in failed');

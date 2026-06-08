@@ -42,6 +42,7 @@ const createGlobeLayout = (albumIds, controls) => {
 
 function GalleryScene() {
   const albums = useGalleryStore((state) => state.albums);
+  const crateInbox = useGalleryStore((state) => state.crateInbox);
   const activeGenre = useGalleryStore((state) => state.activeGenre);
   const selectedAlbumId = useGalleryStore((state) => state.selectedAlbumId);
   const selectAlbum = useGalleryStore((state) => state.selectAlbum);
@@ -65,10 +66,24 @@ function GalleryScene() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const selectedAlbum = useMemo(() => {
+    if (!selectedAlbumId) return null;
+    return albums.find((a) => a.id === selectedAlbumId) ||
+           crateInbox.find((a) => a.id === selectedAlbumId);
+  }, [albums, crateInbox, selectedAlbumId]);
+
   const visibleAlbums = useMemo(
     () => albums.filter((album) => activeGenre === 'All' || album.genre === activeGenre),
     [albums, activeGenre]
   );
+
+  const renderAlbums = useMemo(() => {
+    const list = [...visibleAlbums];
+    if (selectedAlbum && !list.some((a) => a.id === selectedAlbum.id)) {
+      list.push(selectedAlbum);
+    }
+    return list;
+  }, [visibleAlbums, selectedAlbum]);
 
   const visibleIds = useMemo(() => visibleAlbums.map((album) => album.id), [visibleAlbums]);
   const layoutMap = useMemo(() => createGlobeLayout(visibleIds, controls), [visibleIds, controls]);
@@ -206,7 +221,7 @@ function GalleryScene() {
       <pointLight position={[-6, 3, 4]} intensity={0.6} />
       <Environment preset="city" />
       <group ref={groupRef}>
-        {albums.map((album) => {
+        {renderAlbums.map((album) => {
           const visibleTarget = layoutMap.get(album.id);
           const hasSelection = Boolean(selectedAlbumId);
 
@@ -232,13 +247,24 @@ function GalleryScene() {
 
             opacity = hasSelection && !isSelected ? controls.dimOpacity : 1;
           } else {
-            target = {
-              position: [0, -8.2, -14],
-              rotationY: 0,
-              rotationX: 0,
-              scale: 0.001,
-            };
-            opacity = 0;
+            const isSelected = selectedAlbumId === album.id;
+            if (isSelected) {
+              target = {
+                position: [0, 0.6, 0],
+                rotationY: 0,
+                rotationX: 0,
+                scale: isMobile ? 0.48 : 0.8,
+              };
+              opacity = 1;
+            } else {
+              target = {
+                position: [0, -8.2, -14],
+                rotationY: 0,
+                rotationX: 0,
+                scale: 0.001,
+              };
+              opacity = 0;
+            }
           }
 
           return (

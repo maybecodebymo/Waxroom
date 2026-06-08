@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Disc, Filter, Sparkles, SlidersHorizontal, ArrowLeft, ArrowRight, Play } from 'lucide-react';
+import { Disc, Filter, Sparkles, SlidersHorizontal, ArrowLeft, ArrowRight, Play, Globe } from 'lucide-react';
 import { useGalleryStore } from '../../store/useGalleryStore';
 
 const tourSteps = [
@@ -26,24 +26,52 @@ const tourSteps = [
     targetId: 'bottom-actions', // Special case to highlight both buttons
   },
   {
-    title: '4. Feed, Share & Tune',
-    icon: SlidersHorizontal,
-    description: 'Take control of your room! Use the top-right bar to view the community feed, share a link, or open the "Tune" panel to link your Selector Profile (Google/Apple sync across devices) at the top of the menu, switch between multiple rooms, and connect Spotify or Apple Music live streaming.',
+    title: '4. Community Feed',
+    icon: Globe,
+    description: "Connect with the community! Click the 'Feed' button to open the Community Feed. Here you can explore public rooms published by other collectors and visit their rooms in real-time.",
     cardPosition: 'top-24 right-4 md:right-8 w-[min(90vw,380px)]',
-    targetId: 'top-right-controls',
+    targetId: 'feed-nav-btn',
+  },
+  {
+    title: '5. Crate Inbox',
+    icon: Disc,
+    description: "Manage your incoming vinyls! Tap the 'Crate' button to check your Inbox. The Waxroom automatically captures any track you listen to on Spotify or Last.fm. Simply click to add them permanently to your room.",
+    cardPosition: 'top-24 right-4 md:right-8 w-[min(90vw,380px)]',
+    targetId: 'crate-nav-btn',
+  },
+  {
+    title: '6. Tune Settings',
+    icon: SlidersHorizontal,
+    description: "Take total control of your room! Use the 'Tune' panel to configure your Selector Profile, manage multiple rooms, or link your Spotify and Last.fm accounts for real-time tracking.",
+    cardPosition: 'top-24 right-4 md:right-8 w-[min(90vw,380px)]',
+    targetId: 'tune-nav-btn',
   },
 ];
 
 function TutorialTour() {
-  const [stepIndex, setStepIndex] = useState(0);
+  const tourStepIndex = useGalleryStore((state) => state.tourStepIndex || 0);
+  const setTourStepIndex = useGalleryStore((state) => state.setTourStepIndex);
   const setCompletedTour = useGalleryStore((state) => state.setCompletedTour);
   
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    setTourStepIndex(0);
+  }, [setTourStepIndex]);
+
   // Track bounding rectangles of UI elements for pixel-perfect outlines
   const [highlights, setHighlights] = useState([]);
 
   useEffect(() => {
     const updateHighlights = () => {
-      const currentStep = tourSteps[stepIndex];
+      const currentStep = tourSteps[tourStepIndex];
       if (!currentStep.targetId) {
         setHighlights([]);
         return;
@@ -110,28 +138,49 @@ function TutorialTour() {
       clearInterval(interval);
       window.removeEventListener('resize', updateHighlights);
     };
-  }, [stepIndex]);
+  }, [tourStepIndex]);
 
   const handleNext = () => {
-    if (stepIndex < tourSteps.length - 1) {
-      setStepIndex(stepIndex + 1);
+    if (tourStepIndex < tourSteps.length - 1) {
+      setTourStepIndex(tourStepIndex + 1);
     } else {
       setCompletedTour(true);
+      setTourStepIndex(0);
     }
   };
 
   const handleBack = () => {
-    if (stepIndex > 0) {
-      setStepIndex(stepIndex - 1);
+    if (tourStepIndex > 0) {
+      setTourStepIndex(tourStepIndex - 1);
     }
   };
 
   const handleSkip = () => {
     setCompletedTour(true);
+    setTourStepIndex(0);
   };
 
-  const currentStep = tourSteps[stepIndex];
+  const currentStep = tourSteps[tourStepIndex];
   const StepIcon = currentStep.icon;
+
+  const getCardPosition = () => {
+    if (!isMobile) return currentStep.cardPosition;
+    
+    // Mobile position overrides to avoid blocking UI elements
+    switch (tourStepIndex) {
+      case 0: // Sphere
+        return 'bottom-24 left-1/2 -translate-x-1/2 w-[min(90vw,380px)]';
+      case 1: // Filter
+      case 2: // Bottom actions
+        return 'top-20 left-1/2 -translate-x-1/2 w-[min(90vw,380px)]';
+      case 3: // Feed
+      case 4: // Crate
+      case 5: // Tune
+        return 'bottom-24 left-1/2 -translate-x-1/2 w-[min(90vw,380px)]';
+      default:
+        return currentStep.cardPosition;
+    }
+  };
 
   return (
     <div className="absolute inset-0 z-50 pointer-events-none overflow-hidden">
@@ -161,7 +210,7 @@ function TutorialTour() {
 
       {/* Dotted Orbit Highlight for the 3D Sphere */}
       <AnimatePresence>
-        {stepIndex === 0 && (
+        {tourStepIndex === 0 && (
           <motion.div
             key="center-orbit"
             initial={{ opacity: 0, scale: 0.8 }}
@@ -177,9 +226,9 @@ function TutorialTour() {
       </AnimatePresence>
 
       {/* Floating Tour Guide Card */}
-      <div className={`absolute z-50 pointer-events-auto ${currentStep.cardPosition} transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]`}>
+      <div className={`absolute z-50 pointer-events-auto ${getCardPosition()} transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]`}>
         <motion.div
-          key={stepIndex}
+          key={tourStepIndex}
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
@@ -209,7 +258,7 @@ function TutorialTour() {
                 <div
                   key={i}
                   className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${
-                    i === stepIndex ? 'w-4 bg-orange-500' : 'bg-zinc-300'
+                    i === tourStepIndex ? 'w-4 bg-orange-500' : 'bg-zinc-300'
                   }`}
                 />
               ))}
@@ -217,7 +266,7 @@ function TutorialTour() {
 
             {/* Navigation buttons */}
             <div className="flex gap-2">
-              {stepIndex > 0 && (
+              {tourStepIndex > 0 && (
                 <button
                   onClick={handleBack}
                   className="inline-flex items-center justify-center p-2 rounded-xl border border-zinc-200 bg-white/70 hover:bg-white text-zinc-600 active:scale-95 transition"
@@ -230,8 +279,8 @@ function TutorialTour() {
                 onClick={handleNext}
                 className="inline-flex items-center justify-center gap-1 bg-zinc-900 text-zinc-100 hover:bg-zinc-800 text-xs font-semibold uppercase tracking-wider px-3.5 py-2 rounded-xl shadow-md active:scale-95 transition"
               >
-                {stepIndex === tourSteps.length - 1 ? 'Finish' : 'Next'}
-                {stepIndex < tourSteps.length - 1 && <ArrowRight size={12} />}
+                {tourStepIndex === tourSteps.length - 1 ? 'Finish' : 'Next'}
+                {tourStepIndex < tourSteps.length - 1 && <ArrowRight size={12} />}
               </button>
             </div>
           </div>

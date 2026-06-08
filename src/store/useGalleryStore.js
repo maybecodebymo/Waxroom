@@ -47,6 +47,7 @@ export const useGalleryStore = create(
       myAlbums: [],
       albums: [],
       crateInbox: [],
+      hasUnseenCrateItems: false,
       listeningHistory: [],
       genres: ['All'],
       user: null,
@@ -290,6 +291,8 @@ export const useGalleryStore = create(
       },
       hasCompletedTour: false,
       setCompletedTour: (completed) => set({ hasCompletedTour: completed }),
+      tourStepIndex: 0,
+      setTourStepIndex: (index) => set({ tourStepIndex: index }),
       isRecommendationsOpen: false,
       setRecommendationsOpen: (isOpen) => set({ isRecommendationsOpen: isOpen }),
       isViewingShared: false,
@@ -299,7 +302,11 @@ export const useGalleryStore = create(
       isFeedOpen: false,
       setFeedOpen: (isOpen) => set({ isFeedOpen: isOpen }),
       isHistoryOpen: false,
-      setHistoryOpen: (isOpen) => set({ isHistoryOpen: isOpen }),
+      setHistoryOpen: (isOpen) =>
+        set((state) => ({
+          isHistoryOpen: isOpen,
+          hasUnseenCrateItems: isOpen ? false : state.hasUnseenCrateItems,
+        })),
       isPublished: false,
       publishedDescription: '',
       lastPublishedVaultName: '',
@@ -726,8 +733,8 @@ export const useGalleryStore = create(
       setUser: (user) => set({ user }),
       setLastFmUsername: (name) => set({ lastFmUsername: name }),
       initializeAuth: () => {
-        if (!isFirebaseConfigured || !auth) return;
-        onAuthStateChanged(auth, (firebaseUser) => {
+        if (!isFirebaseConfigured || !auth) return null;
+        return onAuthStateChanged(auth, (firebaseUser) => {
           if (firebaseUser) {
             set({
               user: {
