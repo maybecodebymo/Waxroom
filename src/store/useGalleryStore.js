@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { db, isFirebaseConfigured } from '../utils/firebase';
+import { db, isFirebaseConfigured, auth } from '../utils/firebase';
 import { collection, addDoc, getDocs, getDoc, setDoc, doc, query, orderBy, limit, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 
 const buildGenres = (albums) => ['All', ...new Set(albums.map((album) => album.genre))];
 
@@ -45,7 +46,12 @@ export const useGalleryStore = create(
     (set, get) => ({
       myAlbums: [],
       albums: [],
+      crateInbox: [],
       genres: ['All'],
+      user: null,
+      lastFmUsername: '',
+      livePlayback: null,
+      activeRoomPlayback: null,
       selectedAlbumId: null,
       activeGenre: 'All',
       isAddModalOpen: false,
@@ -187,6 +193,37 @@ export const useGalleryStore = create(
 
         get().syncLiveRoomToFirestore();
       },
+      addToShelfFromCrate: (albumId) => {
+        if (!get().canEditAlbums || get().isViewingShared) return;
+        const targetAlbum = get().crateInbox.find(a => a.id === albumId);
+        if (!targetAlbum) return;
+
+        set((state) => {
+          const myAlbums = [...state.myAlbums, targetAlbum];
+          const crateInbox = state.crateInbox.filter(a => a.id !== albumId);
+          return {
+            myAlbums,
+            albums: myAlbums,
+            genres: buildGenres(myAlbums),
+            crateInbox,
+            selectedAlbumId: targetAlbum.id,
+            activeGenre: 'All',
+          };
+        });
+
+        get().syncLiveRoomToFirestore();
+        get().backupRoomToCloud();
+      },
+      removeFromCrate: (albumId) => {
+        set((state) => ({
+          crateInbox: state.crateInbox.filter(a => a.id !== albumId)
+        }));
+        get().backupRoomToCloud();
+      },
+      clearCrate: () => {
+        set({ crateInbox: [] });
+        get().backupRoomToCloud();
+      },
       loadSharedRoom: (ownerName, sharedAlbums) => {
         set({
           sharedOwnerName: ownerName,
@@ -206,6 +243,7 @@ export const useGalleryStore = create(
           selectedAlbumId: null,
           activeGenre: 'All',
           isViewingShared: false,
+          activeRoomPlayback: null,
         });
       },
       shareRoomToCloud: async () => {
@@ -218,9 +256,12 @@ export const useGalleryStore = create(
           texture_url: a.texture_url?.startsWith('data:') ? '' : a.texture_url,
         }));
         const vaultName = get().vaultName || 'Anonymous';
+        const user = get().user;
+        const ownerUid = user ? user.uid : 'anonymous';
         try {
           const docRef = await addDoc(collection(db, 'shared_rooms'), {
             ownerName: vaultName,
+            ownerUid,
             albums: lightweight,
             createdAt: Date.now()
           });
@@ -242,6 +283,12 @@ export const useGalleryStore = create(
           if (docSnap && docSnap.exists()) {
             const data = docSnap.data();
             get().loadSharedRoom(data.ownerName, data.albums);
+            
+            // Subscriptions to live playback if available
+            if (type === 'live') {
+              // We return the unsubscribe handler so caller can cleanup
+              return docSnap.id;
+            }
             return true;
           }
         } catch (err) {
@@ -252,14 +299,19 @@ export const useGalleryStore = create(
       publishRoom: async (description) => {
         const myAlbums = get().myAlbums;
         const vaultName = get().vaultName || 'Anonymous';
-        const vaultId = vaultName.toLowerCase().trim();
+        const user = get().user;
+        if (!user) return;
         const desc = description || 'No description provided.';
         const newRoom = {
           ownerName: vaultName,
+          ownerUid: user.uid,
           roomName: `${vaultName}'s Room`,
           description: desc,
           genres: [...new Set(myAlbums.map((a) => a.genre))].slice(0, 3).join(', '),
-          albums: myAlbums,
+          albums: myAlbums.map(a => ({
+            ...a,
+            texture_url: a.texture_url?.startsWith('data:') ? '' : a.texture_url,
+          })),
           updatedAt: Date.now(),
         };
 
@@ -270,19 +322,19 @@ export const useGalleryStore = create(
           timelineError: null
         });
 
-        if (isFirebaseConfigured && db && vaultId) {
+        if (isFirebaseConfigured && db) {
           try {
-            await setDoc(doc(db, 'community_rooms', vaultId), newRoom);
+            await setDoc(doc(db, 'community_rooms', user.uid), newRoom);
             await get().fetchTimelineRooms();
           } catch (err) {
             console.error('Failed to publish room to Firestore:', err);
             set({ timelineError: `Publish failed: ${err.message}` });
             set((state) => ({
-              timelineRooms: [{ id: `room-${vaultId}`, ...newRoom }, ...state.timelineRooms.filter(r => r.id !== `room-${vaultId}`)],
+              timelineRooms: [{ id: user.uid, ...newRoom }, ...state.timelineRooms.filter(r => r.id !== user.uid)],
             }));
           }
         } else {
-          const localId = `room-${vaultId || Date.now()}`;
+          const localId = `room-${user.uid}`;
           set((state) => ({
             timelineRooms: [{ id: localId, ...newRoom }, ...state.timelineRooms.filter(r => r.id !== localId)],
           }));
@@ -290,36 +342,33 @@ export const useGalleryStore = create(
       },
       syncLiveRoomToFirestore: async () => {
         if (!isFirebaseConfigured || !db) return;
-        const { isPublished, myAlbums, vaultName, publishedDescription } = get();
-        if (!isPublished) return;
-        
-        const vaultId = vaultName?.toLowerCase().trim();
-        if (!vaultId) return;
+        const { isPublished, myAlbums, vaultName, publishedDescription, user } = get();
+        if (!isPublished || !user) return;
 
         const newRoom = {
           ownerName: vaultName,
+          ownerUid: user.uid,
           roomName: `${vaultName}'s Room`,
           description: publishedDescription || 'No description provided.',
           genres: [...new Set(myAlbums.map((a) => a.genre))].slice(0, 3).join(', '),
-          albums: myAlbums,
+          albums: myAlbums.map(a => ({
+            ...a,
+            texture_url: a.texture_url?.startsWith('data:') ? '' : a.texture_url,
+          })),
           updatedAt: Date.now(),
         };
 
         try {
-          await setDoc(doc(db, 'community_rooms', vaultId), newRoom);
+          await setDoc(doc(db, 'community_rooms', user.uid), newRoom, { merge: true });
           await get().fetchTimelineRooms();
         } catch (err) {
           console.error('Failed to sync live room to Firestore:', err);
           set({ timelineError: `Sync failed: ${err.message}` });
         }
       },
-      unpublishRoom: async (customVaultId) => {
-        const { lastPublishedVaultName, vaultName } = get();
-        let vaultId = customVaultId || lastPublishedVaultName?.toLowerCase().trim() || vaultName?.toLowerCase().trim();
-
-        if (vaultId && vaultId.startsWith('room-')) {
-          vaultId = vaultId.substring(5);
-        }
+      unpublishRoom: async () => {
+        const user = get().user;
+        if (!user) return;
 
         set({
           isPublished: false,
@@ -330,45 +379,16 @@ export const useGalleryStore = create(
 
         if (isFirebaseConfigured && db) {
           try {
-            if (vaultId) {
-              await deleteDoc(doc(db, 'community_rooms', vaultId));
-            }
-
-            // Query to find and clean up any other duplicates under the same owner names
-            const q = query(collection(db, 'community_rooms'));
-            const querySnapshot = await getDocs(q);
-            const deletePromises = [];
-            querySnapshot.forEach((docSnap) => {
-              if (docSnap.id === vaultId) return;
-
-              const data = docSnap.data();
-              const owner = data.ownerName?.toLowerCase().trim();
-              const targetOwner1 = vaultName?.toLowerCase().trim();
-              const targetOwner2 = lastPublishedVaultName?.toLowerCase().trim();
-              if (owner === targetOwner1 || owner === targetOwner2) {
-                deletePromises.push(deleteDoc(doc(db, 'community_rooms', docSnap.id)));
-              }
-            });
-
-            if (deletePromises.length > 0) {
-              await Promise.all(deletePromises);
-            }
+            await deleteDoc(doc(db, 'community_rooms', user.uid));
+            await get().fetchTimelineRooms();
           } catch (err) {
             console.error('Failed to delete live room from Firestore:', err);
             set({ timelineError: `Go offline failed: ${err.message}` });
           }
-        }
-
-        if (isFirebaseConfigured && db) {
-          await get().fetchTimelineRooms();
         } else {
           // If in local-only fallback mode, filter out the local room
           set((state) => ({
-            timelineRooms: state.timelineRooms.filter((r) => 
-              r.id !== `room-${vaultId}` && 
-              r.id !== customVaultId && 
-              !r.id.includes(vaultId)
-            ),
+            timelineRooms: state.timelineRooms.filter((r) => r.id !== `room-${user.uid}`),
           }));
         }
       },
@@ -412,14 +432,15 @@ export const useGalleryStore = create(
         if (!isFirebaseConfigured || !db) {
           return { success: false, error: 'Firebase is not initialized or configured' };
         }
-        const vaultName = get().vaultName?.trim();
-        if (!vaultName) return { success: false, error: 'Please set a room name first' };
+        const user = get().user;
+        if (!user) return { success: false, error: 'Not authenticated' };
         
         try {
-          const docRef = doc(db, 'user_vaults', vaultName.toLowerCase());
+          const docRef = doc(db, 'user_vaults', user.uid);
           await setDoc(docRef, {
             albums: get().myAlbums,
-            vaultName: vaultName,
+            crateInbox: get().crateInbox || [],
+            vaultName: get().vaultName || user.displayName,
             updatedAt: Date.now(),
           });
           return { success: true };
@@ -428,25 +449,30 @@ export const useGalleryStore = create(
           return { success: false, error: err.message };
         }
       },
-      restoreRoomFromCloud: async (targetName) => {
+      restoreRoomFromCloud: async () => {
         if (!isFirebaseConfigured || !db) {
           return { success: false, error: 'Firebase is not initialized or configured' };
         }
-        const name = targetName?.trim() || get().vaultName?.trim();
-        if (!name) return { success: false, error: 'Please enter a room name to restore' };
-
+        const user = get().user;
+        if (!user) return { success: false, error: 'Not authenticated' };
+ 
         try {
-          const docRef = doc(db, 'user_vaults', name.toLowerCase());
+          const docRef = doc(db, 'user_vaults', user.uid);
           const docSnap = await getDoc(docRef);
           if (!docSnap.exists()) {
-            return { success: false, error: 'No backed-up room found with that name' };
+            // Auto-backup local state if user has items but no cloud document yet
+            if (get().myAlbums.length > 0) {
+              await get().backupRoomToCloud();
+            }
+            return { success: true, message: 'No remote backup existed, created default backup.' };
           }
           const data = docSnap.data();
           set({
             myAlbums: data.albums || [],
             albums: data.albums || [],
+            crateInbox: data.crateInbox || [],
             genres: buildGenres(data.albums || []),
-            vaultName: data.vaultName || name,
+            vaultName: data.vaultName || get().vaultName || user.displayName,
             selectedAlbumId: null,
             activeGenre: 'All',
           });
@@ -454,6 +480,59 @@ export const useGalleryStore = create(
         } catch (err) {
           console.error('Failed to restore room from cloud:', err);
           return { success: false, error: err.message };
+        }
+      },
+      setUser: (user) => set({ user }),
+      setLastFmUsername: (name) => set({ lastFmUsername: name }),
+      initializeAuth: () => {
+        if (!isFirebaseConfigured || !auth) return;
+        onAuthStateChanged(auth, (firebaseUser) => {
+          if (firebaseUser) {
+            set({
+              user: {
+                uid: firebaseUser.uid,
+                displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Anonymous Selector',
+                email: firebaseUser.email,
+                isAnonymous: firebaseUser.isAnonymous
+              }
+            });
+            get().restoreRoomFromCloud();
+          } else {
+            set({ user: null });
+            signInAnonymously(auth).catch((err) => {
+              console.error('Anonymous sign-in failed:', err);
+            });
+          }
+        });
+      },
+      updateLivePlaybackState: async (playbackInfo) => {
+        set({ livePlayback: playbackInfo });
+        const { isPublished, user } = get();
+        if (isPublished && isFirebaseConfigured && db && user) {
+          try {
+            const docRef = doc(db, 'community_rooms', user.uid);
+            await setDoc(docRef, {
+              activePlayback: playbackInfo
+            }, { merge: true });
+          } catch (err) {
+            console.error('Failed to sync playback state to Firestore:', err);
+          }
+        }
+      },
+      subscribeToActiveRoomPlayback: (targetUid) => {
+        if (!isFirebaseConfigured || !db || !targetUid) return () => {};
+        try {
+          const docRef = doc(db, 'community_rooms', targetUid);
+          const unsubscribe = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              set({ activeRoomPlayback: data.activePlayback || null });
+            }
+          });
+          return unsubscribe;
+        } catch (err) {
+          console.error('Failed to subscribe to active room playback:', err);
+          return () => {};
         }
       },
       setSceneControl: (key, value) =>
@@ -468,6 +547,7 @@ export const useGalleryStore = create(
       name: 'waxroom-store-v1',
       partialize: (state) => ({
         myAlbums: state.myAlbums,
+        crateInbox: state.crateInbox,
         timelineRooms: state.timelineRooms,
         sceneControls: state.sceneControls,
         sceneControlsVersion,
@@ -476,6 +556,7 @@ export const useGalleryStore = create(
         isPublished: state.isPublished,
         publishedDescription: state.publishedDescription,
         lastPublishedVaultName: state.lastPublishedVaultName,
+        lastFmUsername: state.lastFmUsername,
       }),
       merge: (persistedState, currentState) => {
         const storedMyAlbums = persistedState?.myAlbums;
@@ -501,6 +582,7 @@ export const useGalleryStore = create(
           ...persistedState,
           myAlbums,
           albums: myAlbums,
+          crateInbox: Array.isArray(persistedState?.crateInbox) ? persistedState.crateInbox : [],
           genres: buildGenres(myAlbums),
           timelineRooms,
           sceneControls,
@@ -508,6 +590,7 @@ export const useGalleryStore = create(
           isPublished: persistedState?.isPublished ?? false,
           publishedDescription: persistedState?.publishedDescription ?? '',
           lastPublishedVaultName: persistedState?.lastPublishedVaultName ?? '',
+          lastFmUsername: persistedState?.lastFmUsername ?? '',
         };
       },
     }

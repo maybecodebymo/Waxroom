@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, User, Globe, Disc, Send } from 'lucide-react';
 import { useGalleryStore } from '../../store/useGalleryStore';
@@ -19,6 +19,7 @@ function TimelineFeed() {
   const publishedDescription = useGalleryStore((state) => state.publishedDescription);
   const lastPublishedVaultName = useGalleryStore((state) => state.lastPublishedVaultName);
   const unpublishRoom = useGalleryStore((state) => state.unpublishRoom);
+  const user = useGalleryStore((state) => state.user);
 
   useEffect(() => {
     const unsubscribe = subscribeToTimelineRooms();
@@ -195,12 +196,7 @@ function TimelineFeed() {
             ) : (
               timelineRooms.map((room) => {
                 const isCurrent = isViewingShared && sharedOwnerName === room.ownerName;
-                const isOwnRoom = !isViewingShared && (
-                  room.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim() ||
-                  room.ownerName?.toLowerCase().trim() === lastPublishedVaultName?.toLowerCase().trim() ||
-                  room.id === vaultName?.toLowerCase().trim() ||
-                  room.id === lastPublishedVaultName?.toLowerCase().trim()
-                );
+                const isOwnRoom = !isViewingShared && user && (room.id === user.uid || room.ownerUid === user.uid);
 
                 return (
                   <div
@@ -255,6 +251,43 @@ function TimelineFeed() {
                       {room.description}
                     </p>
 
+                    {room.activePlayback && room.activePlayback.isPlaying && (
+                      <div className="mb-3.5 flex items-center gap-2.5 bg-zinc-900 text-white rounded-xl p-2 border border-zinc-850 shadow-sm relative overflow-hidden group">
+                        <div className="relative h-9 w-9 shrink-0 flex items-center justify-center">
+                          <img
+                            src={room.activePlayback.albumArtUrl || '/placeholder-album.png'}
+                            alt={room.activePlayback.albumTitle || 'Now Playing'}
+                            className="h-9 w-9 rounded object-cover shadow-sm bg-zinc-800"
+                          />
+                          <div className="absolute inset-0 bg-black/40 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Disc size={14} className="text-white animate-spin" style={{ animationDuration: '3s' }} />
+                          </div>
+                        </div>
+                        
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1">
+                            <span className="relative flex h-1 w-1">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-1 w-1 bg-emerald-500"></span>
+                            </span>
+                            <span className="text-[7.5px] font-display font-extrabold uppercase tracking-widest text-emerald-400">
+                              Now Playing
+                            </span>
+                          </div>
+                          <p className="text-[9.5px] font-display font-bold uppercase tracking-wider truncate leading-tight mt-0.5">
+                            {room.activePlayback.trackTitle}
+                          </p>
+                          <p className="text-[8px] font-display font-bold uppercase tracking-widest text-zinc-400 truncate leading-none mt-0.5">
+                            {room.activePlayback.artistName}
+                          </p>
+                        </div>
+                        
+                        {room.activePlayback.previewUrl && (
+                          <PreviewPlayerButton previewUrl={room.activePlayback.previewUrl} />
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between pt-2.5 border-t border-white/20 text-[9px] font-display font-bold uppercase tracking-wider text-zinc-400">
                       <span className="flex items-center gap-1 text-orange-655 text-orange-600">
                         <Disc size={11} className={isCurrent ? 'animate-spin' : ''} style={{ animationDuration: '4s' }} /> {room.albums.length} Records
@@ -280,3 +313,56 @@ function TimelineFeed() {
 }
 
 export default TimelineFeed;
+
+function PreviewPlayerButton({ previewUrl }) {
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
+
+  const togglePlay = () => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio(previewUrl);
+      audioRef.current.volume = 0.35;
+      audioRef.current.addEventListener('ended', () => setPlaying(false));
+    }
+
+    if (playing) {
+      audioRef.current.pause();
+      setPlaying(false);
+    } else {
+      audioRef.current.play().catch((err) => console.warn('Preview play failed:', err));
+      setPlaying(true);
+    }
+  };
+
+  return (
+    <button
+      onClick={togglePlay}
+      className={`shrink-0 h-7 w-7 rounded-full flex items-center justify-center transition-all cursor-pointer border ${
+        playing
+          ? 'bg-orange-500 border-orange-500 text-white'
+          : 'bg-zinc-800 border-zinc-750 text-zinc-400 hover:text-white hover:border-zinc-500'
+      }`}
+      title={playing ? 'Pause Preview' : 'Play Preview'}
+    >
+      {playing ? (
+        <span className="flex items-center gap-0.5">
+          <span className="w-0.5 h-3 bg-white animate-pulse" style={{ animationDelay: '0.1s' }} />
+          <span className="w-0.5 h-3 bg-white animate-pulse" style={{ animationDelay: '0.2s' }} />
+          <span className="w-0.5 h-3 bg-white animate-pulse" style={{ animationDelay: '0.3s' }} />
+        </span>
+      ) : (
+        <svg className="h-3.5 w-3.5 fill-current ml-0.5" viewBox="0 0 24 24">
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      )}
+    </button>
+  );
+}

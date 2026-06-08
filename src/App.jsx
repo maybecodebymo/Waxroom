@@ -10,6 +10,7 @@ import RecommendationsOverlay from './components/overlays/RecommendationsOverlay
 import OnboardingModal from './components/overlays/OnboardingModal';
 import TutorialTour from './components/overlays/TutorialTour';
 import TimelineFeed from './components/overlays/TimelineFeed';
+import LiveListeningManager from './components/scene/LiveListeningManager';
 import { useGalleryStore } from './store/useGalleryStore';
 
 const fadeIn = {
@@ -48,6 +49,8 @@ function App() {
   const isRecommendationsOpen = useGalleryStore((state) => state.isRecommendationsOpen);
   const setRecommendationsOpen = useGalleryStore((state) => state.setRecommendationsOpen);
   const fetchRoomFromDb = useGalleryStore((state) => state.fetchRoomFromDb);
+  const initializeAuth = useGalleryStore((state) => state.initializeAuth);
+  const subscribeToActiveRoomPlayback = useGalleryStore((state) => state.subscribeToActiveRoomPlayback);
 
   // Auto-close Feed & Recommendations when active modals/views open
   useEffect(() => {
@@ -64,6 +67,21 @@ function App() {
       setRecommendationsOpen(false);
     }
   }, [isFeedOpen, isRecommendationsOpen, setRecommendationsOpen]);
+
+  // Initialize user authentication on mount
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
+  // Subscribe to live room playback if visiting another user's live room
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const roomId = params.get('room');
+    if (roomId && isViewingShared) {
+      const unsubscribe = subscribeToActiveRoomPlayback(roomId);
+      return () => unsubscribe();
+    }
+  }, [isViewingShared, subscribeToActiveRoomPlayback]);
 
   useEffect(() => {
     if (!canEditAlbums && isAddModalOpen) {
@@ -197,6 +215,7 @@ function App() {
         </div>
       </motion.header>
 
+      <LiveListeningManager />
       <AlbumDetailOverlay />
       <SceneControlsOverlay />
       <RecommendationsOverlay />

@@ -1,10 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Database, Link, SlidersHorizontal, Globe, Settings, X, UploadCloud, DownloadCloud, Cloud, Send } from 'lucide-react';
+import { Database, Link, SlidersHorizontal, Globe, Settings, X, UploadCloud, DownloadCloud, Cloud, Send, LogIn, LogOut, UserCheck, Disc } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { compressToEncodedURIComponent } from 'lz-string';
 import { useGalleryStore } from '../../store/useGalleryStore';
 import { fetchLastFmRoom } from '../../utils/lastFmService';
-import { isFirebaseConfigured } from '../../utils/firebase';
+import { isFirebaseConfigured, auth } from '../../utils/firebase';
+import { signOut } from 'firebase/auth';
+import AuthModal from './AuthModal';
 
 const controlRows = [
   { key: 'globeRadius', label: 'Radius', min: 5.2, max: 10.5, step: 0.1 },
@@ -47,6 +49,14 @@ function SceneControlsOverlay() {
   const publishRoom = useGalleryStore((state) => state.publishRoom);
   const myAlbums = useGalleryStore((state) => state.myAlbums);
 
+  const user = useGalleryStore((state) => state.user);
+  const crateInbox = useGalleryStore((state) => state.crateInbox);
+  const addToShelfFromCrate = useGalleryStore((state) => state.addToShelfFromCrate);
+  const removeFromCrate = useGalleryStore((state) => state.removeFromCrate);
+  const clearCrate = useGalleryStore((state) => state.clearCrate);
+  const lastFmUsername = useGalleryStore((state) => state.lastFmUsername);
+  const setLastFmUsername = useGalleryStore((state) => state.setLastFmUsername);
+
   const [isMobile, setIsMobile] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [lfmUser, setLfmUser] = useState('');
@@ -59,8 +69,16 @@ function SceneControlsOverlay() {
   const [restoreName, setRestoreName] = useState('');
   const [description, setDescription] = useState('');
 
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
   const isAddModalOpen = useGalleryStore((state) => state.isAddModalOpen);
   const isRecommendationsOpen = useGalleryStore((state) => state.isRecommendationsOpen);
+
+  useEffect(() => {
+    if (lastFmUsername) {
+      setLfmUser(lastFmUsername);
+    }
+  }, [lastFmUsername]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -259,10 +277,10 @@ function SceneControlsOverlay() {
                           if (!lfmUser.trim()) return;
                           setIsSyncing(true);
                           try {
+                            setLastFmUsername(lfmUser.trim());
                             const newRoom = await fetchLastFmRoom(lfmUser.trim(), import.meta.env.VITE_LASTFM_API_KEY);
                             if (newRoom.length > 0) {
                               replaceRoom(newRoom);
-                              setLfmUser('');
                             } else {
                               alert("No albums found for this Last.fm user.");
                             }
@@ -296,74 +314,87 @@ function SceneControlsOverlay() {
                         </div>
                       </form>
 
-                      {/* Cloud Sync Backup & Restore */}
+                      {/* Cloud Sync / Profile Dashboard */}
                       {isFirebaseConfigured ? (
                         <div className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)] text-zinc-900">
                           <span className="flex items-center gap-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
-                            <Cloud size={12} className="text-orange-500" />
-                            Cloud Sync & Backup
+                            <UserCheck size={12} className="text-orange-500" />
+                            Selector Profile
                           </span>
                           
-                          <div className="flex flex-col gap-2">
-                            <button
-                              type="button"
-                              disabled={isCloudLoading || !vaultName.trim()}
-                              onClick={async () => {
-                                setIsCloudLoading(true);
-                                setCloudStatus('');
-                                setCloudError('');
-                                const res = await backupRoomToCloud();
-                                setIsCloudLoading(false);
-                                if (res.success) {
-                                  setCloudStatus('Backed up successfully!');
-                                  setTimeout(() => setCloudStatus(''), 3000);
-                                } else {
-                                  setCloudError(res.error || 'Backup failed');
-                                }
-                              }}
-                              className="w-full flex items-center justify-center gap-1.5 rounded-lg py-2 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn text-zinc-850 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-                            >
-                              <UploadCloud size={12} />
-                              {isCloudLoading ? 'Backing up...' : 'Backup Current Room'}
-                            </button>
-                            
-                            <div className="h-px bg-white/20 my-1" />
-                            
-                            <span className="text-[8.5px] font-display font-bold uppercase tracking-widest text-zinc-400">
-                              Restore / Sync Another Device
-                            </span>
-                            
-                            <div className="flex gap-2">
-                               <input 
-                                type="text" 
-                                value={restoreName}
-                                onChange={(e) => setRestoreName(e.target.value)}
-                                placeholder="Enter Room Name to Load" 
-                                className="min-w-0 flex-1 rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-base md:text-[11px] outline-none focus:border-orange-500 focus:bg-white transition-all"
-                              />
-                              <button 
-                                type="button" 
-                                disabled={isCloudLoading || !restoreName.trim()}
+                          {user ? (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between gap-2 bg-white/50 rounded-lg p-2 border border-white/30">
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-900 truncate">
+                                    {user.displayName}
+                                  </p>
+                                  <p className="text-[8.5px] font-display font-bold uppercase tracking-widest text-zinc-400 truncate mt-0.5">
+                                    {user.isAnonymous ? 'Guest Collector' : user.email}
+                                  </p>
+                                </div>
+                                {user.isAnonymous ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setIsAuthModalOpen(true)}
+                                    className="shrink-0 flex items-center justify-center gap-1 rounded-md bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 text-[8.5px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+                                  >
+                                    Link Profile
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      try {
+                                        await signOut(auth);
+                                      } catch (err) {
+                                        console.error('Sign out failed:', err);
+                                      }
+                                    }}
+                                    className="shrink-0 flex items-center justify-center gap-1 rounded-md bg-zinc-700 hover:bg-zinc-800 text-white px-2 py-1 text-[8.5px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+                                  >
+                                    Log Out
+                                  </button>
+                                )}
+                              </div>
+                              
+                              {user.isAnonymous && (
+                                <p className="text-[8.5px] text-zinc-500 leading-relaxed font-body">
+                                  Your room is stored locally. Link your profile to restore it across other devices.
+                                </p>
+                              )}
+                              
+                              <button
+                                type="button"
+                                disabled={isCloudLoading}
                                 onClick={async () => {
                                   setIsCloudLoading(true);
                                   setCloudStatus('');
                                   setCloudError('');
-                                  const res = await restoreRoomFromCloud(restoreName);
+                                  const res = await backupRoomToCloud();
                                   setIsCloudLoading(false);
                                   if (res.success) {
-                                    setCloudStatus('Room restored successfully!');
-                                    setRestoreName('');
+                                    setCloudStatus('Sync completed!');
                                     setTimeout(() => setCloudStatus(''), 3000);
                                   } else {
-                                    setCloudError(res.error || 'Restore failed');
+                                    setCloudError(res.error || 'Backup failed');
                                   }
                                 }}
-                                className="shrink-0 rounded-lg text-zinc-955 px-3 py-1.5 text-[10px] font-display font-bold uppercase tracking-widest transition-all glass-btn cursor-pointer disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1"
+                                className="w-full flex items-center justify-center gap-1.5 rounded-lg py-2 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn text-zinc-850 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
                               >
-                                <DownloadCloud size={11} /> Load
+                                <Cloud size={12} className="text-orange-500 animate-pulse" />
+                                {isCloudLoading ? 'Syncing...' : 'Sync Room to Cloud'}
                               </button>
                             </div>
-                          </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setIsAuthModalOpen(true)}
+                              className="w-full flex items-center justify-center gap-1.5 rounded-lg py-2 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn text-zinc-850 cursor-pointer"
+                            >
+                              <LogIn size={12} className="text-orange-500" /> Sign In / Create Profile
+                            </button>
+                          )}
 
                           {cloudStatus && (
                             <p className="text-[9px] font-display font-bold uppercase text-emerald-600 mt-1">{cloudStatus}</p>
@@ -371,6 +402,70 @@ function SceneControlsOverlay() {
                           {cloudError && (
                             <p className="text-[9px] font-display font-bold uppercase text-red-600 mt-1">{cloudError}</p>
                           )}
+                        </div>
+                      ) : null}
+
+                      {/* Crate Inbox (Airbuds-style Auto-Collected Shelf) */}
+                      {canEditAlbums && crateInbox && crateInbox.length > 0 ? (
+                        <div className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)] text-zinc-900">
+                          <div className="flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
+                              <Disc size={12} className="text-orange-500 animate-spin" style={{ animationDuration: '4s' }} />
+                              Crate Inbox ({crateInbox.length})
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm('Clear all items from your Crate?')) {
+                                  clearCrate();
+                                }
+                              }}
+                              className="text-[8.5px] font-display font-bold uppercase tracking-widest text-red-500 hover:text-red-700 transition cursor-pointer"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                          
+                          <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                            {crateInbox.map((album) => (
+                              <div key={album.id} className="flex items-center gap-2 bg-white/50 border border-white/40 rounded-lg p-2">
+                                <img
+                                  src={album.texture_url || '/placeholder-album.png'}
+                                  alt={album.album_title}
+                                  className="h-9 w-9 rounded object-cover shadow-sm bg-zinc-200 shrink-0"
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[9.5px] font-display font-bold uppercase tracking-wide text-zinc-900 truncate leading-snug">
+                                    {album.album_title}
+                                  </p>
+                                  <p className="text-[8.5px] font-display font-medium text-zinc-500 truncate leading-none mt-0.5">
+                                    {album.artist}
+                                  </p>
+                                </div>
+                                <div className="flex gap-1 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => addToShelfFromCrate(album.id)}
+                                    className="bg-emerald-500 hover:bg-emerald-600 text-white rounded px-2 py-1 text-[8.5px] font-display font-bold uppercase tracking-wider cursor-pointer active:scale-95 transition-all"
+                                    title="Add to Shelf"
+                                  >
+                                    Keep
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeFromCrate(album.id)}
+                                    className="bg-zinc-200 hover:bg-zinc-300 text-zinc-700 rounded px-2 py-1 text-[8.5px] font-display font-bold uppercase tracking-wider cursor-pointer active:scale-95 transition-all"
+                                    title="Discard"
+                                  >
+                                    X
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-[8px] font-display font-bold uppercase tracking-widest text-zinc-400 text-center leading-normal mt-0.5">
+                            Recent scrobbles are auto-collected here.
+                          </p>
                         </div>
                       ) : null}
 
@@ -497,6 +592,11 @@ function SceneControlsOverlay() {
           )}
         </motion.aside>
       )}
+      <AnimatePresence>
+        {isAuthModalOpen && (
+          <AuthModal onClose={() => setIsAuthModalOpen(false)} />
+        )}
+      </AnimatePresence>
     </AnimatePresence>
   );
 }
