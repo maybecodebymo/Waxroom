@@ -2,7 +2,14 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { db, isFirebaseConfigured, auth } from '../utils/firebase';
 import { collection, addDoc, getDocs, getDoc, setDoc, doc, query, orderBy, limit, deleteDoc, onSnapshot } from 'firebase/firestore';
-import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import { 
+  onAuthStateChanged, 
+  signInAnonymously, 
+  isSignInWithEmailLink, 
+  signInWithEmailLink, 
+  EmailAuthProvider, 
+  linkWithCredential 
+} from 'firebase/auth';
 
 const buildGenres = (albums) => ['All', ...new Set(albums.map((album) => album.genre))];
 
@@ -734,6 +741,64 @@ export const useGalleryStore = create(
       setLastFmUsername: (name) => set({ lastFmUsername: name }),
       initializeAuth: () => {
         if (!isFirebaseConfigured || !auth) return null;
+
+        let emailLinkSignInPending = false;
+
+        // Check if loading from email sign-in link
+        if (isSignInWithEmailLink(auth, window.location.href)) {
+          let email = window.localStorage.getItem('emailForSignIn');
+          if (!email) {
+            email = window.prompt('Please enter your email to confirm sign-in:');
+          }
+          if (email) {
+            emailLinkSignInPending = true;
+            const completeEmailSignIn = async () => {
+              try {
+                const currentUser = auth.currentUser;
+                const credential = EmailAuthProvider.credentialWithLink(email, window.location.href);
+                
+                if (currentUser && currentUser.isAnonymous) {
+                  try {
+                    await linkWithCredential(currentUser, credential);
+                    await get().backupRoomToCloud();
+                  } catch (linkErr) {
+                    if (linkErr.code === 'auth/credential-already-in-use') {
+                      const confirmMerge = window.confirm(
+                        "This email account is already linked to another Waxroom. Signing in will switch to that room and discard your current local changes. Do you want to continue?"
+                      );
+                      if (confirmMerge) {
+                        await signInWithEmailLink(auth, email, window.location.href);
+                      }
+                    } else {
+                      throw linkErr;
+                    }
+                  }
+                } else {
+                  await signInWithEmailLink(auth, email, window.location.href);
+                }
+              } catch (err) {
+                console.error('Email link sign-in failed:', err);
+                alert('Sign-in failed: ' + (err.message || err));
+              } finally {
+                emailLinkSignInPending = false;
+                window.localStorage.removeItem('emailForSignIn');
+                
+                // Preserve app params (room, share) while removing Firebase auth params
+                try {
+                  const url = new URL(window.location.href);
+                  const authParams = ['apiKey', 'oobCode', 'mode', 'continueUrl', 'lang'];
+                  authParams.forEach(p => url.searchParams.delete(p));
+                  window.history.replaceState(null, null, url.toString());
+                } catch (urlErr) {
+                  console.error('Failed to parse clean URL:', urlErr);
+                  window.history.replaceState(null, null, window.location.origin + window.location.pathname);
+                }
+              }
+            };
+            completeEmailSignIn();
+          }
+        }
+
         return onAuthStateChanged(auth, (firebaseUser) => {
           if (firebaseUser) {
             set({
@@ -746,6 +811,7 @@ export const useGalleryStore = create(
             });
             get().restoreRoomFromCloud();
           } else {
+            if (emailLinkSignInPending) return; // Wait for email link flow to complete
             set({ user: null });
             signInAnonymously(auth).catch((err) => {
               console.error('Anonymous sign-in failed:', err);

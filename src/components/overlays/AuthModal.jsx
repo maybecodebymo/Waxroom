@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, ArrowRight, LockKeyhole } from 'lucide-react';
+import { X, LockKeyhole, Mail } from 'lucide-react';
 import { auth, isFirebaseConfigured } from '../../utils/firebase';
 import { 
   GoogleAuthProvider, 
-  OAuthProvider,
   signInWithPopup, 
-  linkWithPopup 
+  linkWithPopup,
+  sendSignInLinkToEmail
 } from 'firebase/auth';
 import { useGalleryStore } from '../../store/useGalleryStore';
 
 function AuthModal({ onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
+  const [emailSent, setEmailSent] = useState(false);
   const backupRoomToCloud = useGalleryStore((state) => state.backupRoomToCloud);
 
   const handleGoogleAuth = async () => {
@@ -54,40 +56,28 @@ function AuthModal({ onClose }) {
     }
   };
 
-  const handleAppleAuth = async () => {
+  const handleEmailAuth = async (e) => {
+    e.preventDefault();
     if (!isFirebaseConfigured || !auth) return;
     setLoading(true);
     setError('');
-    const provider = new OAuthProvider('apple.com');
+    setEmailSent(false);
 
     try {
-      const currentUser = auth.currentUser;
-      if (currentUser && currentUser.isAnonymous) {
-        try {
-          // Link anonymous session with Apple atomically
-          await linkWithPopup(currentUser, provider);
-          await backupRoomToCloud();
-          onClose();
-        } catch (linkErr) {
-          if (linkErr.code === 'auth/credential-already-in-use') {
-            const confirmMerge = window.confirm(
-              "This Apple account is already linked to another Waxroom. Signing in will switch to that room and discard your current local changes. Do you want to continue?"
-            );
-            if (confirmMerge) {
-              await signInWithPopup(auth, provider);
-              onClose();
-            }
-          } else {
-            throw linkErr;
-          }
-        }
-      } else {
-        await signInWithPopup(auth, provider);
-        onClose();
-      }
+      const actionCodeSettings = {
+        // Return URL. Must be in the authorized domains list in Firebase console.
+        url: window.location.origin + window.location.pathname + (window.location.search ? window.location.search : ''),
+        handleCodeInApp: true,
+      };
+
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      
+      // Save email locally to complete sign-in on redirect
+      window.localStorage.setItem('emailForSignIn', email);
+      setEmailSent(true);
     } catch (err) {
-      console.error('Apple authentication failed:', err);
-      setError(err.message || 'Apple sign-in failed');
+      console.error('Email verification link send failed:', err);
+      setError(err.message || 'Failed to send verification link');
     } finally {
       setLoading(false);
     }
@@ -136,11 +126,47 @@ function AuthModal({ onClose }) {
             Secure Device Link
           </p>
           <p className="text-[10px] font-body text-zinc-500 leading-relaxed max-w-[280px] mx-auto">
-            We don't collect, store or handle passwords. Authenticate securely using your existing credentials to sync your vinyl room across mobile and desktop.
+            We don't collect, store or handle passwords. Authenticate securely using your email or Google credentials to sync your vinyl room.
           </p>
         </div>
 
+        {/* Email Passwordless Sync Form */}
+        <form onSubmit={handleEmailAuth} className="space-y-3 border-b border-zinc-200 pb-5 mb-5">
+          <p className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-500 text-left">
+            Sync via Email Link
+          </p>
+          <div className="flex flex-col gap-2">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              required
+              className="w-full rounded-xl border border-zinc-250 bg-white/70 px-4 py-2.5 text-xs font-medium text-zinc-800 placeholder-zinc-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all"
+            />
+            <button
+              type="submit"
+              disabled={loading || emailSent}
+              className={`w-full inline-flex items-center justify-center gap-2 rounded-xl py-3 px-6 text-xs font-display font-bold uppercase tracking-wider text-white transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98] shadow-sm ${
+                emailSent ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-orange-500 hover:bg-orange-600'
+              }`}
+            >
+              {emailSent ? (
+                <>✓ Verification Link Sent!</>
+              ) : (
+                <>
+                  <Mail size={12} /> Send Verification Link
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+
         <div className="space-y-3">
+          <p className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-400 text-center mb-1">
+            — OR —
+          </p>
+          
           {/* Google Sync Button */}
           <button
             onClick={handleGoogleAuth}
@@ -166,18 +192,6 @@ function AuthModal({ onClose }) {
               />
             </svg>
             Sync with Google
-          </button>
-
-          {/* Apple Sync Button */}
-          <button
-            onClick={handleAppleAuth}
-            disabled={loading}
-            className="w-full inline-flex items-center justify-center gap-2.5 rounded-xl border border-zinc-250 bg-black hover:bg-zinc-900 py-3.5 px-6 text-xs font-display font-bold uppercase tracking-wider text-white transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98] shadow-sm"
-          >
-            <svg className="h-4 w-4 shrink-0 fill-current" viewBox="0 0 24 24">
-              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.17c.66-.81 1.11-1.93.99-3.06-.96.04-2.13.64-2.82 1.45-.6.7-1.13 1.84-.99 2.94.12.02.24.03.36.03.95 0 2.06-.56 2.46-1.36z" />
-            </svg>
-            Sync with Apple
           </button>
         </div>
 
