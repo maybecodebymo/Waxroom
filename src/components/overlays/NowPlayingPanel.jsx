@@ -105,7 +105,7 @@ function NowPlayingPanel() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                   </span>
-                  Live scrobbling
+                  Now playing
                 </>
               ) : (
                 'Playing'
@@ -118,33 +118,22 @@ function NowPlayingPanel() {
 
           {/* Vinyl Spinning Disc Graphic */}
           <div className="relative w-36 h-36 mx-auto flex items-center justify-center">
-            {/* Outer vinyl disc container */}
+            {/* Outer full-vinyl container */}
             <div
-              className={`relative w-36 h-36 rounded-full bg-zinc-950 shadow-[0_8px_32px_rgba(0,0,0,0.25)] flex items-center justify-center overflow-hidden transition-all duration-300 ${
+              className={`relative w-36 h-36 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.25)] flex items-center justify-center overflow-hidden transition-all duration-300 bg-zinc-900 ${
                 isPlaying ? 'animate-[spin_10s_linear_infinite]' : ''
               }`}
-              style={{
-                backgroundImage: 'radial-gradient(circle, rgba(40,40,40,1) 0%, rgba(10,10,10,1) 100%)',
-              }}
             >
-              {/* Vinyl Groove details */}
-              <div className="absolute inset-2 rounded-full border border-zinc-900/50 pointer-events-none" />
-              <div className="absolute inset-4 rounded-full border border-zinc-900/60 pointer-events-none" />
-              <div className="absolute inset-7 rounded-full border border-zinc-800/40 pointer-events-none" />
-              <div className="absolute inset-10 rounded-full border border-zinc-800/40 pointer-events-none" />
+              {/* Full-disc Album Art */}
+              <img
+                src={current.albumArtUrl}
+                alt={current.album}
+                className="w-full h-full object-cover rounded-full select-none pointer-events-none"
+                draggable="false"
+              />
               
               {/* Shiny reflection effect */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none opacity-40" />
-
-              {/* Center Label (Album Art Cover) */}
-              <div className="absolute w-[52px] h-[52px] rounded-full overflow-hidden border border-zinc-900 bg-zinc-850 flex items-center justify-center">
-                <img
-                  src={current.albumArtUrl}
-                  alt={current.album}
-                  className="w-full h-full object-cover select-none pointer-events-none"
-                  draggable="false"
-                />
-              </div>
+              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none opacity-60 rounded-full" />
 
               {/* Center Spindle Hole */}
               <div className="absolute w-3.5 h-3.5 rounded-full bg-[#f5f5f3] border-2 border-zinc-900 z-10 shadow-inner" />
@@ -201,17 +190,20 @@ function NowPlayingPanel() {
           <div className="flex items-center gap-2 min-w-0">
             {/* Spinning disc avatar */}
             <div
-              className={`h-9 w-9 rounded-full bg-zinc-950 flex items-center justify-center shrink-0 shadow-sm relative overflow-hidden ${
+              className={`h-9 w-9 rounded-full bg-zinc-900 flex items-center justify-center shrink-0 shadow-sm relative overflow-hidden ${
                 isPlaying ? 'animate-spin' : ''
               }`}
               style={{ animationDuration: '6s' }}
             >
+              {/* Full-disc Album Art */}
               <img
                 src={current.albumArtUrl}
                 alt={current.album}
-                className="h-4.5 w-4.5 rounded-full object-cover"
+                className="h-full w-full rounded-full object-cover select-none pointer-events-none"
+                draggable="false"
               />
-              <div className="absolute w-1.5 h-1.5 rounded-full bg-[#f5f5f3] border border-zinc-950 z-10" />
+              {/* Center Spindle Hole */}
+              <div className="absolute w-1.5 h-1.5 rounded-full bg-[#f5f5f3] border border-zinc-950/20 z-10" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
@@ -220,7 +212,7 @@ function NowPlayingPanel() {
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                 </span>
                 <span className="text-[7.5px] font-display font-extrabold uppercase tracking-widest text-zinc-400 leading-none">
-                  Live Listening
+                  Now playing
                 </span>
               </div>
               <p className="text-[10px] font-display font-extrabold uppercase tracking-wide text-zinc-900 truncate leading-snug mt-0.5">

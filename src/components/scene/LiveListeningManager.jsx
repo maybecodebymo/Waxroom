@@ -97,11 +97,6 @@ function LiveListeningManager() {
   const lastFmUsername = useGalleryStore((state) => state.lastFmUsername);
   const spotifyAccessToken = useGalleryStore((state) => state.spotifyAccessToken);
   const spotifyTokenExpiry = useGalleryStore((state) => state.spotifyTokenExpiry);
-  const appleMusicSimulatedActive = useGalleryStore((state) => state.appleMusicSimulatedActive);
-  const appleMusicTrackTitle = useGalleryStore((state) => state.appleMusicTrackTitle);
-  const appleMusicArtistName = useGalleryStore((state) => state.appleMusicArtistName);
-  const appleMusicAlbumTitle = useGalleryStore((state) => state.appleMusicAlbumTitle);
-  const appleMusicAlbumArtUrl = useGalleryStore((state) => state.appleMusicAlbumArtUrl);
 
   const updateLivePlaybackState = useGalleryStore((state) => state.updateLivePlaybackState);
   const myAlbums = useGalleryStore((state) => state.myAlbums);
@@ -127,17 +122,7 @@ function LiveListeningManager() {
           }
         }
 
-        // 2. Check Apple Music simulation second if active
-        if (!activeTrackData && appleMusicSimulatedActive && appleMusicTrackTitle) {
-          activeTrackData = {
-            trackTitle: appleMusicTrackTitle,
-            artistName: appleMusicArtistName,
-            albumTitle: appleMusicAlbumTitle,
-            albumArtUrl: appleMusicAlbumArtUrl || '/placeholder-album.png',
-            isPlaying: true
-          };
-          source = 'applemusic';
-        }
+
 
         // 3. Check Last.fm third as a fallback
         if (!activeTrackData && lastFmUsername) {
@@ -243,11 +228,6 @@ function LiveListeningManager() {
     lastFmUsername,
     spotifyAccessToken,
     spotifyTokenExpiry,
-    appleMusicSimulatedActive,
-    appleMusicTrackTitle,
-    appleMusicArtistName,
-    appleMusicAlbumTitle,
-    appleMusicAlbumArtUrl,
     myAlbums,
     crateInbox,
     updateLivePlaybackState

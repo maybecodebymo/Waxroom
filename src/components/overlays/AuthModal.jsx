@@ -6,7 +6,7 @@ import {
   GoogleAuthProvider, 
   OAuthProvider,
   signInWithPopup, 
-  linkWithCredential 
+  linkWithPopup 
 } from 'firebase/auth';
 import { useGalleryStore } from '../../store/useGalleryStore';
 
@@ -25,18 +25,15 @@ function AuthModal({ onClose }) {
       const currentUser = auth.currentUser;
       if (currentUser && currentUser.isAnonymous) {
         try {
-          // Attempt to link current anonymous session with Google
-          const result = await signInWithPopup(auth, provider);
-          const credential = GoogleAuthProvider.credentialFromResult(result);
-          await linkWithCredential(currentUser, credential);
+          // Link anonymous session with Google atomically
+          await linkWithPopup(currentUser, provider);
           await backupRoomToCloud();
         } catch (linkErr) {
           if (linkErr.code === 'auth/credential-already-in-use') {
             // If Google credential already exists, sign in directly to that account
             await signInWithPopup(auth, provider);
           } else {
-            // Fallback sign in
-            await signInWithPopup(auth, provider);
+            throw linkErr;
           }
         }
       } else {
@@ -61,15 +58,14 @@ function AuthModal({ onClose }) {
       const currentUser = auth.currentUser;
       if (currentUser && currentUser.isAnonymous) {
         try {
-          const result = await signInWithPopup(auth, provider);
-          const credential = provider.credentialFromResult(result);
-          await linkWithCredential(currentUser, credential);
+          // Link anonymous session with Apple atomically
+          await linkWithPopup(currentUser, provider);
           await backupRoomToCloud();
         } catch (linkErr) {
           if (linkErr.code === 'auth/credential-already-in-use') {
             await signInWithPopup(auth, provider);
           } else {
-            await signInWithPopup(auth, provider);
+            throw linkErr;
           }
         }
       } else {
@@ -92,7 +88,7 @@ function AuthModal({ onClose }) {
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="absolute inset-0 z-50 flex items-center justify-center bg-zinc-955/65 bg-zinc-950/60 backdrop-blur-md p-4 pointer-events-auto"
+      className="absolute inset-0 z-50 flex items-center justify-center bg-zinc-950/60 backdrop-blur-md p-4 pointer-events-auto"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 16 }}

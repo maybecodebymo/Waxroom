@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { decompressFromEncodedURIComponent } from 'lz-string';
 import GalleryCanvas from './components/scene/GalleryCanvas';
 import AlbumDetailOverlay from './components/overlays/AlbumDetailOverlay';
@@ -12,6 +12,7 @@ import TutorialTour from './components/overlays/TutorialTour';
 import TimelineFeed from './components/overlays/TimelineFeed';
 import LiveListeningManager from './components/scene/LiveListeningManager';
 import NowPlayingPanel from './components/overlays/NowPlayingPanel';
+import CrateHistoryPanel from './components/overlays/CrateHistoryPanel';
 import { useGalleryStore } from './store/useGalleryStore';
 
 const fadeIn = {
@@ -33,6 +34,7 @@ const formatRoomName = (name) => {
 };
 
 function App() {
+  const sharedRoomIdRef = useRef(null);
   const isAddModalOpen = useGalleryStore((state) => state.isAddModalOpen);
   const canEditAlbums = useGalleryStore((state) => state.canEditAlbums);
   const setAddModalOpen = useGalleryStore((state) => state.setAddModalOpen);
@@ -49,25 +51,43 @@ function App() {
   const setFeedOpen = useGalleryStore((state) => state.setFeedOpen);
   const isRecommendationsOpen = useGalleryStore((state) => state.isRecommendationsOpen);
   const setRecommendationsOpen = useGalleryStore((state) => state.setRecommendationsOpen);
+  const isHistoryOpen = useGalleryStore((state) => state.isHistoryOpen);
+  const setHistoryOpen = useGalleryStore((state) => state.setHistoryOpen);
   const fetchRoomFromDb = useGalleryStore((state) => state.fetchRoomFromDb);
   const initializeAuth = useGalleryStore((state) => state.initializeAuth);
   const subscribeToActiveRoomPlayback = useGalleryStore((state) => state.subscribeToActiveRoomPlayback);
 
-  // Auto-close Feed & Recommendations when active modals/views open
+  // Auto-close Feed, Recommendations & History when active modals/views open
   useEffect(() => {
     const hasActiveModal = isViewingShared || isAddModalOpen || selectedAlbumId || !vaultName;
     if (hasActiveModal) {
       if (isFeedOpen) setFeedOpen(false);
       if (isRecommendationsOpen) setRecommendationsOpen(false);
+      if (isHistoryOpen) setHistoryOpen(false);
     }
-  }, [isViewingShared, isAddModalOpen, selectedAlbumId, vaultName, isFeedOpen, isRecommendationsOpen, setFeedOpen, setRecommendationsOpen]);
+  }, [isViewingShared, isAddModalOpen, selectedAlbumId, vaultName, isFeedOpen, isRecommendationsOpen, isHistoryOpen, setFeedOpen, setRecommendationsOpen, setHistoryOpen]);
 
-  // Handle mutual exclusion between Feed drawer and Recommendations overlay
+  // Handle mutual exclusion between Feed, Recommendations, and History overlays
   useEffect(() => {
-    if (isFeedOpen && isRecommendationsOpen) {
+    if (isFeedOpen) {
+      setRecommendationsOpen(false);
+      setHistoryOpen(false);
+    }
+  }, [isFeedOpen, setRecommendationsOpen, setHistoryOpen]);
+
+  useEffect(() => {
+    if (isHistoryOpen) {
+      setFeedOpen(false);
       setRecommendationsOpen(false);
     }
-  }, [isFeedOpen, isRecommendationsOpen, setRecommendationsOpen]);
+  }, [isHistoryOpen, setFeedOpen, setRecommendationsOpen]);
+
+  useEffect(() => {
+    if (isRecommendationsOpen) {
+      setFeedOpen(false);
+      setHistoryOpen(false);
+    }
+  }, [isRecommendationsOpen, setFeedOpen, setHistoryOpen]);
 
   // Initialize user authentication on mount
   useEffect(() => {
@@ -92,8 +112,7 @@ function App() {
 
   // Subscribe to live room playback if visiting another user's live room
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const roomId = params.get('room');
+    const roomId = sharedRoomIdRef.current;
     if (roomId && isViewingShared) {
       const unsubscribe = subscribeToActiveRoomPlayback(roomId);
       return () => unsubscribe();
@@ -176,6 +195,7 @@ function App() {
       // Clean the URL bar without reloading
       window.history.replaceState({}, '', window.location.pathname);
     } else if (roomId) {
+      sharedRoomIdRef.current = roomId;
       fetchRoomFromDb('live', roomId).then(() => {
         window.history.replaceState({}, '', window.location.pathname);
       });
@@ -251,6 +271,9 @@ function App() {
       </AnimatePresence>
       <AnimatePresence>
         {isFeedOpen && <TimelineFeed />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {isHistoryOpen && <CrateHistoryPanel />}
       </AnimatePresence>
     </main>
   );

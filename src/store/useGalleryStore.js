@@ -65,23 +65,9 @@ export const useGalleryStore = create(
       activeRoomId: 'default',
       spotifyAccessToken: '',
       spotifyTokenExpiry: 0,
-      spotifyClientId: '',
-      appleMusicSimulatedActive: false,
-      appleMusicTrackTitle: '',
-      appleMusicArtistName: '',
-      appleMusicAlbumTitle: '',
-      appleMusicAlbumArtUrl: '',
       setSpotifyToken: (token, expiresMs) => set({
         spotifyAccessToken: token,
         spotifyTokenExpiry: Date.now() + expiresMs
-      }),
-      setSpotifyClientId: (clientId) => set({ spotifyClientId: clientId }),
-      setAppleMusicSimulatedActive: (active) => set({ appleMusicSimulatedActive: active }),
-      updateAppleMusicSimulation: (track) => set({
-        appleMusicTrackTitle: track?.title || '',
-        appleMusicArtistName: track?.artist || '',
-        appleMusicAlbumTitle: track?.album || '',
-        appleMusicAlbumArtUrl: track?.albumArtUrl || ''
       }),
       createNewRoom: async (name) => {
         const id = `room_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
@@ -312,6 +298,8 @@ export const useGalleryStore = create(
       timelineError: null,
       isFeedOpen: false,
       setFeedOpen: (isOpen) => set({ isFeedOpen: isOpen }),
+      isHistoryOpen: false,
+      setHistoryOpen: (isOpen) => set({ isHistoryOpen: isOpen }),
       isPublished: false,
       publishedDescription: '',
       lastPublishedVaultName: '',
@@ -760,10 +748,10 @@ export const useGalleryStore = create(
       },
       updateLivePlaybackState: async (playbackInfo) => {
         set({ livePlayback: playbackInfo });
-        const { isPublished, user } = get();
+        const { isPublished, user, activeRoomId } = get();
         if (isPublished && isFirebaseConfigured && db && user) {
           try {
-            const docRef = doc(db, 'community_rooms', user.uid);
+            const docRef = doc(db, 'community_rooms', `${user.uid}_${activeRoomId}`);
             await setDoc(docRef, {
               activePlayback: playbackInfo
             }, { merge: true });
@@ -827,12 +815,6 @@ export const useGalleryStore = create(
         activeRoomId: state.activeRoomId,
         spotifyAccessToken: state.spotifyAccessToken,
         spotifyTokenExpiry: state.spotifyTokenExpiry,
-        spotifyClientId: state.spotifyClientId,
-        appleMusicSimulatedActive: state.appleMusicSimulatedActive,
-        appleMusicTrackTitle: state.appleMusicTrackTitle,
-        appleMusicArtistName: state.appleMusicArtistName,
-        appleMusicAlbumTitle: state.appleMusicAlbumTitle,
-        appleMusicAlbumArtUrl: state.appleMusicAlbumArtUrl,
       }),
       merge: (persistedState, currentState) => {
         const storedMyAlbums = persistedState?.myAlbums;
@@ -886,12 +868,6 @@ export const useGalleryStore = create(
           activeRoomId,
           spotifyAccessToken: persistedState?.spotifyAccessToken ?? '',
           spotifyTokenExpiry: persistedState?.spotifyTokenExpiry ?? 0,
-          spotifyClientId: persistedState?.spotifyClientId ?? '',
-          appleMusicSimulatedActive: persistedState?.appleMusicSimulatedActive ?? false,
-          appleMusicTrackTitle: persistedState?.appleMusicTrackTitle ?? '',
-          appleMusicArtistName: persistedState?.appleMusicArtistName ?? '',
-          appleMusicAlbumTitle: persistedState?.appleMusicAlbumTitle ?? '',
-          appleMusicAlbumArtUrl: persistedState?.appleMusicAlbumArtUrl ?? '',
         };
       },
     }

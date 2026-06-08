@@ -33,12 +33,8 @@ function SceneControlsOverlay() {
 
   const user = useGalleryStore((state) => state.user);
   const crateInbox = useGalleryStore((state) => state.crateInbox);
-  const addToShelfFromCrate = useGalleryStore((state) => state.addToShelfFromCrate);
-  const removeFromCrate = useGalleryStore((state) => state.removeFromCrate);
-  const clearCrate = useGalleryStore((state) => state.clearCrate);
   const lastFmUsername = useGalleryStore((state) => state.lastFmUsername);
   const setLastFmUsername = useGalleryStore((state) => state.setLastFmUsername);
-  const listeningHistory = useGalleryStore((state) => state.listeningHistory);
 
   // Multi-room store hooks
   const rooms = useGalleryStore((state) => state.rooms);
@@ -49,18 +45,11 @@ function SceneControlsOverlay() {
 
   // Spotify store hooks
   const spotifyAccessToken = useGalleryStore((state) => state.spotifyAccessToken);
-  const spotifyClientId = useGalleryStore((state) => state.spotifyClientId);
-  const setSpotifyClientId = useGalleryStore((state) => state.setSpotifyClientId);
   const populateRoomFromSpotify = useGalleryStore((state) => state.populateRoomFromSpotify);
 
-  // Apple Music store hooks
-  const appleMusicSimulatedActive = useGalleryStore((state) => state.appleMusicSimulatedActive);
-  const appleMusicTrackTitle = useGalleryStore((state) => state.appleMusicTrackTitle);
-  const appleMusicArtistName = useGalleryStore((state) => state.appleMusicArtistName);
-  const appleMusicAlbumTitle = useGalleryStore((state) => state.appleMusicAlbumTitle);
-  const appleMusicAlbumArtUrl = useGalleryStore((state) => state.appleMusicAlbumArtUrl);
-  const setAppleMusicSimulatedActive = useGalleryStore((state) => state.setAppleMusicSimulatedActive);
-  const updateAppleMusicSimulation = useGalleryStore((state) => state.updateAppleMusicSimulation);
+  // History state hooks
+  const isHistoryOpen = useGalleryStore((state) => state.isHistoryOpen);
+  const setHistoryOpen = useGalleryStore((state) => state.setHistoryOpen);
 
   const [isMobile, setIsMobile] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -80,31 +69,13 @@ function SceneControlsOverlay() {
 
   // Local inputs
   const [newRoomName, setNewRoomName] = useState('');
-  const [spotifyClientInput, setSpotifyClientInput] = useState('');
   const [isSpotifyImporting, setIsSpotifyImporting] = useState(false);
-  const [amTitle, setAmTitle] = useState('');
-  const [amArtist, setAmArtist] = useState('');
-  const [amAlbum, setAmAlbum] = useState('');
-  const [amArt, setAmArt] = useState('');
 
   useEffect(() => {
     if (lastFmUsername) {
       setLfmUser(lastFmUsername);
     }
   }, [lastFmUsername]);
-
-  useEffect(() => {
-    if (spotifyClientId) {
-      setSpotifyClientInput(spotifyClientId);
-    }
-  }, [spotifyClientId]);
-
-  useEffect(() => {
-    setAmTitle(appleMusicTrackTitle);
-    setAmArtist(appleMusicArtistName);
-    setAmAlbum(appleMusicAlbumTitle);
-    setAmArt(appleMusicAlbumArtUrl);
-  }, [appleMusicTrackTitle, appleMusicArtistName, appleMusicAlbumTitle, appleMusicAlbumArtUrl]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -148,7 +119,7 @@ function SceneControlsOverlay() {
 
   return (
     <AnimatePresence>
-      {!selectedAlbumId && !isViewingShared && !isAddModalOpen && !isRecommendationsOpen && !isFeedOpen && vaultName && (
+      {!selectedAlbumId && !isViewingShared && !isAddModalOpen && !isRecommendationsOpen && !isFeedOpen && !isHistoryOpen && vaultName && (
         <motion.aside
           id="top-right-controls"
           initial={{ opacity: 0, y: -20 }}
@@ -181,6 +152,24 @@ function SceneControlsOverlay() {
                 >
                   <Globe size={11} /> Feed
                 </button>
+
+                {/* Crate Button */}
+                {canEditAlbums && (
+                  <button
+                    onClick={() => setHistoryOpen(!isHistoryOpen)}
+                    className={`flex-1 py-1.5 rounded-xl text-[10px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 glass-btn ${
+                      isHistoryOpen ? 'glass-btn-active font-bold' : 'text-zinc-800'
+                    }`}
+                    title="Inbox & History"
+                  >
+                    <Disc size={11} className={crateInbox?.length > 0 ? "animate-pulse text-orange-500" : ""} /> Crate
+                    {crateInbox?.length > 0 && (
+                      <span className="ml-0.5 bg-orange-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center text-[7.5px] font-bold">
+                        {crateInbox.length}
+                      </span>
+                    )}
+                  </button>
+                )}
 
                 {/* Share Button */}
                 <button
@@ -505,25 +494,10 @@ function SceneControlsOverlay() {
                             </div>
                           ) : (
                             <div className="space-y-2">
-                              <div className="flex flex-col gap-1">
-                                <label className="text-[8.5px] font-display font-semibold text-zinc-500 uppercase">
-                                  Custom Client ID (optional)
-                                </label>
-                                <input
-                                  type="text"
-                                  value={spotifyClientInput}
-                                  onChange={(e) => {
-                                    setSpotifyClientInput(e.target.value);
-                                    setSpotifyClientId(e.target.value.trim());
-                                  }}
-                                  placeholder="Default fallback client ID"
-                                  className="rounded-lg border border-white/50 bg-white/80 py-1 px-2 text-[10px] outline-none focus:border-orange-500 focus:bg-white transition-all"
-                                />
-                              </div>
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const clientId = spotifyClientId || 'da12502621fc4df59451be213b1f51ee';
+                                  const clientId = 'da12502621fc4df59451be213b1f51ee';
                                   const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
                                   const scopes = encodeURIComponent('user-read-currently-playing user-top-read user-library-read');
                                   window.location.href = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${redirectUri}&scope=${scopes}`;
@@ -532,84 +506,6 @@ function SceneControlsOverlay() {
                               >
                                 Connect Spotify
                               </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Apple Music section */}
-                        <div className="space-y-2 pt-1">
-                          <div className="flex items-center justify-between font-display text-[10px] font-bold uppercase tracking-wider text-zinc-750">
-                            <span className="text-[9.5px] text-zinc-800">
-                              Simulate Apple Music scrobble
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setAppleMusicSimulatedActive(!appleMusicSimulatedActive)}
-                              className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
-                                appleMusicSimulatedActive ? 'bg-orange-500' : 'bg-zinc-300'
-                              }`}
-                              aria-label="Toggle Apple Music simulation"
-                            >
-                              <span
-                                className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                  appleMusicSimulatedActive ? 'translate-x-3' : 'translate-x-0'
-                                }`}
-                              />
-                            </button>
-                          </div>
-
-                          {appleMusicSimulatedActive && (
-                            <div className="space-y-2 mt-1 bg-white/40 p-2 rounded-lg border border-white/20">
-                              <div className="grid grid-cols-2 gap-1.5">
-                                <div className="flex flex-col gap-0.5">
-                                  <label className="text-[7.5px] font-display font-bold uppercase tracking-widest text-zinc-400">Track Title</label>
-                                  <input
-                                    type="text"
-                                    value={amTitle}
-                                    onChange={(e) => {
-                                      setAmTitle(e.target.value);
-                                      updateAppleMusicSimulation({ title: e.target.value, artist: amArtist, album: amAlbum, albumArtUrl: amArt });
-                                    }}
-                                    className="rounded border border-white/50 bg-white/80 py-0.5 px-1.5 text-[9px] outline-none"
-                                  />
-                                </div>
-                                <div className="flex flex-col gap-0.5">
-                                  <label className="text-[7.5px] font-display font-bold uppercase tracking-widest text-zinc-400">Artist</label>
-                                  <input
-                                    type="text"
-                                    value={amArtist}
-                                    onChange={(e) => {
-                                      setAmArtist(e.target.value);
-                                      updateAppleMusicSimulation({ title: amTitle, artist: e.target.value, album: amAlbum, albumArtUrl: amArt });
-                                    }}
-                                    className="rounded border border-white/50 bg-white/80 py-0.5 px-1.5 text-[9px] outline-none"
-                                  />
-                                </div>
-                                <div className="flex flex-col gap-0.5">
-                                  <label className="text-[7.5px] font-display font-bold uppercase tracking-widest text-zinc-400">Album Name</label>
-                                  <input
-                                    type="text"
-                                    value={amAlbum}
-                                    onChange={(e) => {
-                                      setAmAlbum(e.target.value);
-                                      updateAppleMusicSimulation({ title: amTitle, artist: amArtist, album: e.target.value, albumArtUrl: amArt });
-                                    }}
-                                    className="rounded border border-white/50 bg-white/80 py-0.5 px-1.5 text-[9px] outline-none"
-                                  />
-                                </div>
-                                <div className="flex flex-col gap-0.5">
-                                  <label className="text-[7.5px] font-display font-bold uppercase tracking-widest text-zinc-400">Art Cover URL</label>
-                                  <input
-                                    type="text"
-                                    value={amArt}
-                                    onChange={(e) => {
-                                      setAmArt(e.target.value);
-                                      updateAppleMusicSimulation({ title: amTitle, artist: amArtist, album: amAlbum, albumArtUrl: e.target.value });
-                                    }}
-                                    className="rounded border border-white/50 bg-white/80 py-0.5 px-1.5 text-[9px] outline-none"
-                                  />
-                                </div>
-                              </div>
                             </div>
                           )}
                         </div>
@@ -657,100 +553,6 @@ function SceneControlsOverlay() {
                            </button>
                         </div>
                       </form>
-
-                      {/* Crate Inbox (Airbuds-style Auto-Collected Shelf) */}
-                      {canEditAlbums && crateInbox && crateInbox.length > 0 ? (
-                        <div className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)] text-zinc-900">
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
-                              <Disc size={12} className="text-orange-500 animate-spin" style={{ animationDuration: '4s' }} />
-                              Crate Inbox ({crateInbox.length})
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (window.confirm('Clear all items from your Crate?')) {
-                                  clearCrate();
-                                }
-                              }}
-                              className="text-[8.5px] font-display font-bold uppercase tracking-widest text-red-500 hover:text-red-700 transition cursor-pointer"
-                            >
-                              Clear
-                            </button>
-                          </div>
-                          
-                          <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                            {crateInbox.map((album) => (
-                              <div key={album.id} className="flex items-center gap-2 bg-white/50 border border-white/40 rounded-lg p-2">
-                                <img
-                                  src={album.texture_url || '/placeholder-album.png'}
-                                  alt={album.album_title}
-                                  className="h-9 w-9 rounded object-cover shadow-sm bg-zinc-200 shrink-0"
-                                />
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-[9.5px] font-display font-bold uppercase tracking-wide text-zinc-900 truncate leading-snug">
-                                    {album.album_title}
-                                  </p>
-                                  <p className="text-[8.5px] font-display font-medium text-zinc-500 truncate leading-none mt-0.5">
-                                    {album.artist}
-                                  </p>
-                                </div>
-                                <div className="flex gap-1 shrink-0">
-                                  <button
-                                    type="button"
-                                    onClick={() => addToShelfFromCrate(album.id)}
-                                    className="bg-emerald-500 hover:bg-emerald-600 text-white rounded px-2 py-1 text-[8.5px] font-display font-bold uppercase tracking-wider cursor-pointer active:scale-95 transition-all"
-                                    title="Add to Shelf"
-                                  >
-                                    Keep
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => removeFromCrate(album.id)}
-                                    className="bg-zinc-200 hover:bg-zinc-300 text-zinc-700 rounded px-2 py-1 text-[8.5px] font-display font-bold uppercase tracking-wider cursor-pointer active:scale-95 transition-all"
-                                    title="Discard"
-                                  >
-                                    X
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          <p className="text-[8px] font-display font-bold uppercase tracking-widest text-zinc-400 text-center leading-normal mt-0.5">
-                            Recent scrobbles are auto-collected here.
-                          </p>
-                        </div>
-                      ) : null}
-
-                      {/* Listened To / Recently Played Shelf */}
-                      {listeningHistory && listeningHistory.length > 0 ? (
-                        <div className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)] text-zinc-900">
-                          <span className="flex items-center gap-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
-                            <Disc size={12} className="text-zinc-600 animate-spin" style={{ animationDuration: '6s' }} />
-                            Listened To History
-                          </span>
-                          
-                          <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
-                            {listeningHistory.map((track, index) => (
-                              <div key={index} className="flex items-center gap-2 bg-white/50 border border-white/20 rounded-lg p-2 text-zinc-800">
-                                <img
-                                  src={track.albumArtUrl || '/placeholder-album.png'}
-                                  alt={track.albumTitle || 'Track Art'}
-                                  className="h-7 w-7 rounded object-cover shadow-sm bg-zinc-200 shrink-0"
-                                />
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-[9px] font-display font-bold uppercase tracking-wide text-zinc-900 truncate leading-snug">
-                                    {track.trackTitle}
-                                  </p>
-                                  <p className="text-[8px] font-display font-semibold text-zinc-500 truncate leading-none mt-0.5">
-                                    {track.artistName} • {track.albumTitle || 'Single'}
-                                  </p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
 
                       {vaultName && (
                         <div className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
