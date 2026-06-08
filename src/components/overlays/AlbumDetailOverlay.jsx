@@ -8,6 +8,7 @@ function AlbumDetailOverlay() {
   const albums = useGalleryStore((state) => state.albums);
   const selectedAlbumId = useGalleryStore((state) => state.selectedAlbumId);
   const canEditAlbums = useGalleryStore((state) => state.canEditAlbums);
+  const isViewingShared = useGalleryStore((state) => state.isViewingShared);
   const selectAlbum = useGalleryStore((state) => state.selectAlbum);
   const openEditModal = useGalleryStore((state) => state.openEditModal);
   const deleteAlbum = useGalleryStore((state) => state.deleteAlbum);
@@ -258,7 +259,7 @@ function AlbumDetailOverlay() {
             </div>
 
             {/* Footer action buttons (pinned) */}
-            {canEditAlbums && (
+            {canEditAlbums && !isViewingShared && (
               <div className="mt-5 flex items-center justify-end gap-2 border-t border-white/20 pt-4 shrink-0">
                 {isFromCrate ? (
                   <button
