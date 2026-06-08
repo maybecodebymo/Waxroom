@@ -73,10 +73,12 @@ export const useGalleryStore = create(
       activeRoomId: 'default',
       spotifyAccessToken: '',
       spotifyTokenExpiry: 0,
+      spotifyClientId: '',
       setSpotifyToken: (token, expiresMs) => set({
         spotifyAccessToken: token,
         spotifyTokenExpiry: Date.now() + expiresMs
       }),
+      setSpotifyClientId: (id) => set({ spotifyClientId: id }),
       createNewRoom: async (name) => {
         const id = `room_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
         const newRoom = { id, name, albums: [], description: '', isPublished: false };
@@ -888,6 +890,7 @@ export const useGalleryStore = create(
         activeRoomId: state.activeRoomId,
         spotifyAccessToken: state.spotifyAccessToken,
         spotifyTokenExpiry: state.spotifyTokenExpiry,
+        spotifyClientId: state.spotifyClientId,
       }),
       merge: (persistedState, currentState) => {
         const storedMyAlbums = persistedState?.myAlbums;
@@ -941,6 +944,7 @@ export const useGalleryStore = create(
           activeRoomId,
           spotifyAccessToken: persistedState?.spotifyAccessToken ?? '',
           spotifyTokenExpiry: persistedState?.spotifyTokenExpiry ?? 0,
+          spotifyClientId: persistedState?.spotifyClientId ?? '',
         };
       },
     }

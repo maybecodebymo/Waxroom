@@ -78,6 +78,8 @@ function SceneControlsOverlay() {
   // Spotify store hooks
   const spotifyAccessToken = useGalleryStore((state) => state.spotifyAccessToken);
   const populateRoomFromSpotify = useGalleryStore((state) => state.populateRoomFromSpotify);
+  const spotifyClientId = useGalleryStore((state) => state.spotifyClientId);
+  const setSpotifyClientId = useGalleryStore((state) => state.setSpotifyClientId);
 
   // History state hooks
   const isHistoryOpen = useGalleryStore((state) => state.isHistoryOpen);
@@ -645,11 +647,21 @@ function SceneControlsOverlay() {
                             </div>
                           ) : (
                             <div className="space-y-2">
+                              <div className="flex flex-col gap-0.5">
+                                <label className="text-[7.5px] font-display font-bold uppercase tracking-widest text-zinc-400">Custom Client ID (optional)</label>
+                                <input
+                                  type="text"
+                                  value={spotifyClientId}
+                                  onChange={(e) => setSpotifyClientId(e.target.value.trim())}
+                                  placeholder="Defaults to Waxroom app client ID"
+                                  className="rounded border border-white/50 bg-white/80 py-0.5 px-1.5 text-[9px] outline-none focus:border-orange-500 focus:bg-white transition-all text-zinc-800"
+                                />
+                              </div>
                               <button
                                 type="button"
                                 onClick={async () => {
                                   try {
-                                    const clientId = 'da12502621fc4df59451be213b1f51ee';
+                                    const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID || spotifyClientId || '282d90dc2bce49789047a2afe3411004';
                                     const redirectUri = window.location.origin + window.location.pathname;
                                     const scopes = 'user-read-currently-playing user-top-read user-library-read';
                                     

@@ -116,7 +116,7 @@ function App() {
         window.history.replaceState(null, null, window.location.origin + window.location.pathname);
       }
     } else if (code) {
-      const clientId = 'da12502621fc4df59451be213b1f51ee';
+      const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID || useGalleryStore.getState().spotifyClientId || '282d90dc2bce49789047a2afe3411004';
       const redirectUri = window.location.origin + window.location.pathname;
       const codeVerifier = localStorage.getItem('spotify_code_verifier');
 

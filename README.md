@@ -39,6 +39,9 @@ npm install
 # Add your Last.fm API key
 echo "VITE_LASTFM_API_KEY=your_key_here" > .env
 
+# Add your Spotify client ID
+echo "VITE_SPOTIFY_CLIENT_ID=282d90dc2bce49789047a2afe3411004" >> .env
+
 # Dev server
 npm run dev
 
@@ -53,7 +56,7 @@ This project auto-deploys to GitHub Pages via the included GitHub Actions workfl
 
 **Setup:**
 1. Go to your repo → **Settings** → **Pages** → **Build and deployment** → Set Source to **GitHub Actions**.
-2. Go to **Settings** → **Secrets and variables** → **Actions** → add `VITE_LASTFM_API_KEY` under repository secrets.
+2. Go to **Settings** → **Secrets and variables** → **Actions** → add `VITE_LASTFM_API_KEY` and `VITE_SPOTIFY_CLIENT_ID` under repository secrets.
 3. Push your commits to `master` (or `main`) — the workflow builds and deploys the app automatically.
 
 ## 📁 Project Structure
