@@ -11,6 +11,7 @@ import OnboardingModal from './components/overlays/OnboardingModal';
 import TutorialTour from './components/overlays/TutorialTour';
 import TimelineFeed from './components/overlays/TimelineFeed';
 import LiveListeningManager from './components/scene/LiveListeningManager';
+import NowPlayingPanel from './components/overlays/NowPlayingPanel';
 import { useGalleryStore } from './store/useGalleryStore';
 
 const fadeIn = {
@@ -72,6 +73,22 @@ function App() {
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
+
+  // Catch Spotify OAuth hash redirect token
+  useEffect(() => {
+    if (window.location.hash) {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const accessToken = params.get('access_token');
+      const expiresIn = params.get('expires_in');
+      if (accessToken) {
+        const expiresMs = expiresIn ? parseInt(expiresIn) * 1000 : 3600 * 1000;
+        useGalleryStore.getState().setSpotifyToken(accessToken, expiresMs);
+        // Clean URL hash without reloading
+        window.history.replaceState(null, null, window.location.pathname + window.location.search);
+      }
+    }
+  }, []);
 
   // Subscribe to live room playback if visiting another user's live room
   useEffect(() => {
@@ -220,6 +237,7 @@ function App() {
       <SceneControlsOverlay />
       <RecommendationsOverlay />
       <FilterBar />
+      <NowPlayingPanel />
 
 
       <AnimatePresence>

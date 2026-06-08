@@ -28,7 +28,7 @@ const tourSteps = [
   {
     title: '4. Feed, Share & Tune',
     icon: SlidersHorizontal,
-    description: 'Take control of your room! Use the top-right bar to view the community feed, share a link, or open the "Tune" panel to link your Selector Profile (Google/Apple sync across devices), connect Last.fm live streaming, and customize 3D physics.',
+    description: 'Take control of your room! Use the top-right bar to view the community feed, share a link, or open the "Tune" panel to link your Selector Profile (Google/Apple sync across devices) at the top of the menu, switch between multiple rooms, and connect Spotify or Apple Music live streaming.',
     cardPosition: 'top-24 right-4 md:right-8 w-[min(90vw,380px)]',
     targetId: 'top-right-controls',
   },

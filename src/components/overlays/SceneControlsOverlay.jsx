@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Database, Link, SlidersHorizontal, Globe, Settings, X, UploadCloud, DownloadCloud, Cloud, Send, LogIn, LogOut, UserCheck, Disc } from 'lucide-react';
+import { Link, SlidersHorizontal, Globe, X, Cloud, Send, LogIn, LogOut, UserCheck, Disc, Plus, Trash2, Music } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { compressToEncodedURIComponent } from 'lz-string';
 import { useGalleryStore } from '../../store/useGalleryStore';
@@ -8,25 +8,8 @@ import { isFirebaseConfigured, auth } from '../../utils/firebase';
 import { signOut } from 'firebase/auth';
 import AuthModal from './AuthModal';
 
-const controlRows = [
-  { key: 'globeRadius', label: 'Radius', min: 5.2, max: 10.5, step: 0.1 },
-  { key: 'globeHeight', label: 'Vertical Spread', min: 2.4, max: 8, step: 0.1 },
-  { key: 'dragSpeed', label: 'Drag Speed', min: 0.0015, max: 0.012, step: 0.0001 },
-  { key: 'dragDamp', label: 'Flow Damp', min: 0.05, max: 0.35, step: 0.01 },
-  { key: 'tiltFactor', label: 'Tilt', min: 0, max: 0.45, step: 0.01 },
-  { key: 'focusScale', label: 'Focus Scale', min: 1, max: 2.2, step: 0.01 },
-  { key: 'dimScale', label: 'Dim Scale', min: 0.2, max: 1, step: 0.01 },
-  { key: 'dimOpacity', label: 'Dim Opacity', min: 0.05, max: 0.9, step: 0.01 },
-  { key: 'zoomIn', label: 'Zoom In', min: 2.4, max: 7, step: 0.1 },
-  { key: 'zoomOut', label: 'Zoom Out Offset', min: -8, max: 8, step: 0.1 },
-  { key: 'camDamp', label: 'Camera Damp', min: 0.03, max: 0.2, step: 0.01 },
-];
-
 function SceneControlsOverlay() {
-  const controls = useGalleryStore((state) => state.sceneControls);
-  const setSceneControl = useGalleryStore((state) => state.setSceneControl);
   const canEditAlbums = useGalleryStore((state) => state.canEditAlbums);
-  const toggleEditMode = useGalleryStore((state) => state.toggleEditMode);
   const vaultName = useGalleryStore((state) => state.vaultName);
   const setVaultName = useGalleryStore((state) => state.setVaultName);
   const isFeedOpen = useGalleryStore((state) => state.isFeedOpen);
@@ -41,7 +24,6 @@ function SceneControlsOverlay() {
   const isViewingShared = useGalleryStore((state) => state.isViewingShared);
 
   const backupRoomToCloud = useGalleryStore((state) => state.backupRoomToCloud);
-  const restoreRoomFromCloud = useGalleryStore((state) => state.restoreRoomFromCloud);
   const isPublished = useGalleryStore((state) => state.isPublished);
   const publishedDescription = useGalleryStore((state) => state.publishedDescription);
   const lastPublishedVaultName = useGalleryStore((state) => state.lastPublishedVaultName);
@@ -58,6 +40,28 @@ function SceneControlsOverlay() {
   const setLastFmUsername = useGalleryStore((state) => state.setLastFmUsername);
   const listeningHistory = useGalleryStore((state) => state.listeningHistory);
 
+  // Multi-room store hooks
+  const rooms = useGalleryStore((state) => state.rooms);
+  const activeRoomId = useGalleryStore((state) => state.activeRoomId);
+  const createNewRoom = useGalleryStore((state) => state.createNewRoom);
+  const switchRoom = useGalleryStore((state) => state.switchRoom);
+  const deleteRoom = useGalleryStore((state) => state.deleteRoom);
+
+  // Spotify store hooks
+  const spotifyAccessToken = useGalleryStore((state) => state.spotifyAccessToken);
+  const spotifyClientId = useGalleryStore((state) => state.spotifyClientId);
+  const setSpotifyClientId = useGalleryStore((state) => state.setSpotifyClientId);
+  const populateRoomFromSpotify = useGalleryStore((state) => state.populateRoomFromSpotify);
+
+  // Apple Music store hooks
+  const appleMusicSimulatedActive = useGalleryStore((state) => state.appleMusicSimulatedActive);
+  const appleMusicTrackTitle = useGalleryStore((state) => state.appleMusicTrackTitle);
+  const appleMusicArtistName = useGalleryStore((state) => state.appleMusicArtistName);
+  const appleMusicAlbumTitle = useGalleryStore((state) => state.appleMusicAlbumTitle);
+  const appleMusicAlbumArtUrl = useGalleryStore((state) => state.appleMusicAlbumArtUrl);
+  const setAppleMusicSimulatedActive = useGalleryStore((state) => state.setAppleMusicSimulatedActive);
+  const updateAppleMusicSimulation = useGalleryStore((state) => state.updateAppleMusicSimulation);
+
   const [isMobile, setIsMobile] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [lfmUser, setLfmUser] = useState('');
@@ -67,7 +71,6 @@ function SceneControlsOverlay() {
   const [cloudStatus, setCloudStatus] = useState('');
   const [cloudError, setCloudError] = useState('');
   const [isCloudLoading, setIsCloudLoading] = useState(false);
-  const [restoreName, setRestoreName] = useState('');
   const [description, setDescription] = useState('');
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -75,11 +78,33 @@ function SceneControlsOverlay() {
   const isAddModalOpen = useGalleryStore((state) => state.isAddModalOpen);
   const isRecommendationsOpen = useGalleryStore((state) => state.isRecommendationsOpen);
 
+  // Local inputs
+  const [newRoomName, setNewRoomName] = useState('');
+  const [spotifyClientInput, setSpotifyClientInput] = useState('');
+  const [isSpotifyImporting, setIsSpotifyImporting] = useState(false);
+  const [amTitle, setAmTitle] = useState('');
+  const [amArtist, setAmArtist] = useState('');
+  const [amAlbum, setAmAlbum] = useState('');
+  const [amArt, setAmArt] = useState('');
+
   useEffect(() => {
     if (lastFmUsername) {
       setLfmUser(lastFmUsername);
     }
   }, [lastFmUsername]);
+
+  useEffect(() => {
+    if (spotifyClientId) {
+      setSpotifyClientInput(spotifyClientId);
+    }
+  }, [spotifyClientId]);
+
+  useEffect(() => {
+    setAmTitle(appleMusicTrackTitle);
+    setAmArtist(appleMusicArtistName);
+    setAmAlbum(appleMusicAlbumTitle);
+    setAmArt(appleMusicAlbumArtUrl);
+  }, [appleMusicTrackTitle, appleMusicArtistName, appleMusicAlbumTitle, appleMusicAlbumArtUrl]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -164,10 +189,8 @@ function SceneControlsOverlay() {
                     
                     if (isFirebaseConfigured) {
                       if (isCurrentlyPublished) {
-                        const roomKey = (lastPublishedVaultName || vaultName || '').toLowerCase().trim();
-                        if (roomKey) {
-                          shareUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(roomKey)}`;
-                        }
+                        const uid = user ? user.uid : 'anonymous';
+                        shareUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(uid + "_" + activeRoomId)}`;
                       }
                       
                       if (!shareUrl) {
@@ -192,7 +215,7 @@ function SceneControlsOverlay() {
 
                     navigator.clipboard.writeText(shareUrl).then(() => {
                       setShareCopied(true);
-                      setTimeout(() => setShareCopied(false), 3000);
+                      setTimeout(() => setShareCopied(false), 3500);
                     }).catch((err) => {
                       console.error('Clipboard write failed:', err);
                     });
@@ -331,6 +354,65 @@ function SceneControlsOverlay() {
                         </div>
                       ) : null}
 
+                      {/* Multi-Room Manager */}
+                      <div className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)] text-zinc-900">
+                        <span className="flex items-center gap-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
+                          <SlidersHorizontal size={12} className="text-orange-500" />
+                          Multi-Room Selector
+                        </span>
+                        
+                        <div className="flex gap-2 items-center">
+                          <select
+                            value={activeRoomId}
+                            onChange={(e) => switchRoom(e.target.value)}
+                            className="min-w-0 flex-1 rounded-lg border border-white/50 bg-white/80 py-1.5 px-2.5 text-[11px] font-semibold outline-none focus:border-orange-500 focus:bg-white transition-all text-zinc-900"
+                          >
+                            {rooms.map((r) => (
+                              <option key={r.id} value={r.id}>
+                                {r.name || 'Unnamed Room'}
+                              </option>
+                            ))}
+                          </select>
+                          {rooms.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`Are you sure you want to delete this room?`)) {
+                                  deleteRoom(activeRoomId);
+                                }
+                              }}
+                              className="shrink-0 p-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 cursor-pointer transition active:scale-95 flex items-center justify-center"
+                              title="Delete current room"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Create Room Form */}
+                        <div className="flex gap-1.5 mt-1">
+                          <input
+                            type="text"
+                            value={newRoomName}
+                            onChange={(e) => setNewRoomName(e.target.value)}
+                            placeholder="New room name..."
+                            className="min-w-0 flex-1 rounded-lg border border-white/50 bg-white/80 py-1 px-2.5 text-[10px] outline-none focus:border-orange-500 focus:bg-white transition-all"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const name = newRoomName.trim();
+                              if (!name) return;
+                              createNewRoom(name);
+                              setNewRoomName('');
+                            }}
+                            className="shrink-0 rounded-lg text-zinc-955 px-2.5 py-1 text-[10px] font-display font-bold uppercase tracking-widest transition-all glass-btn cursor-pointer"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </div>
+
                       <div className="flex flex-col gap-1.5 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
                         <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
                           Room Name
@@ -343,6 +425,193 @@ function SceneControlsOverlay() {
                             placeholder="Name your vault" 
                             className="w-full rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-base md:text-[11px] font-semibold outline-none focus:border-orange-500 focus:bg-white transition-all"
                           />
+                        </div>
+                      </div>
+
+                      {/* Streaming Connectors Section */}
+                      <div className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)] text-zinc-900">
+                        <span className="flex items-center gap-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
+                          <Music size={12} className="text-orange-500" />
+                          Streaming Services
+                        </span>
+
+                        {/* Spotify Auth section */}
+                        <div className="space-y-2 border-b border-white/20 pb-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9.5px] font-display font-bold uppercase tracking-wide text-zinc-800">
+                              Spotify Link
+                            </span>
+                            {spotifyAccessToken ? (
+                              <span className="text-[8.5px] font-display font-bold uppercase tracking-widest text-emerald-600">
+                                Connected
+                              </span>
+                            ) : (
+                              <span className="text-[8.5px] font-display font-bold uppercase tracking-widest text-zinc-400">
+                                Disconnected
+                              </span>
+                            )}
+                          </div>
+
+                          {spotifyAccessToken ? (
+                            <div className="space-y-1.5">
+                              <p className="text-[9px] text-zinc-500 font-body leading-tight">
+                                Stream active listening scrobbles directly. You can also import:
+                              </p>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  disabled={isSpotifyImporting}
+                                  onClick={async () => {
+                                    setIsSpotifyImporting(true);
+                                    const res = await populateRoomFromSpotify('tracks');
+                                    setIsSpotifyImporting(false);
+                                    if (res.success) {
+                                      alert(`Imported ${res.count} top tracks into your room shelf!`);
+                                    } else {
+                                      alert(`Import failed: ${res.error}`);
+                                    }
+                                  }}
+                                  className="flex-1 rounded-lg text-zinc-800 py-1 px-2 text-[8.5px] font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer text-center"
+                                >
+                                  Top Tracks
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isSpotifyImporting}
+                                  onClick={async () => {
+                                    setIsSpotifyImporting(true);
+                                    const res = await populateRoomFromSpotify('albums');
+                                    setIsSpotifyImporting(false);
+                                    if (res.success) {
+                                      alert(`Imported ${res.count} saved albums into your room shelf!`);
+                                    } else {
+                                      alert(`Import failed: ${res.error}`);
+                                    }
+                                  }}
+                                  className="flex-1 rounded-lg text-zinc-800 py-1 px-2 text-[8.5px] font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer text-center"
+                                >
+                                  Saved Albums
+                                </button>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  useGalleryStore.setState({ spotifyAccessToken: '', spotifyTokenExpiry: 0 });
+                                }}
+                                className="w-full text-center text-[8px] font-display font-bold uppercase tracking-wider text-red-500 hover:text-red-700 cursor-pointer pt-0.5"
+                              >
+                                Disconnect Spotify
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[8.5px] font-display font-semibold text-zinc-500 uppercase">
+                                  Custom Client ID (optional)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={spotifyClientInput}
+                                  onChange={(e) => {
+                                    setSpotifyClientInput(e.target.value);
+                                    setSpotifyClientId(e.target.value.trim());
+                                  }}
+                                  placeholder="Default fallback client ID"
+                                  className="rounded-lg border border-white/50 bg-white/80 py-1 px-2 text-[10px] outline-none focus:border-orange-500 focus:bg-white transition-all"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const clientId = spotifyClientId || 'da12502621fc4df59451be213b1f51ee';
+                                  const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
+                                  const scopes = encodeURIComponent('user-read-currently-playing user-top-read user-library-read');
+                                  window.location.href = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${redirectUri}&scope=${scopes}`;
+                                }}
+                                className="w-full flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn text-zinc-850 cursor-pointer"
+                              >
+                                Connect Spotify
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Apple Music section */}
+                        <div className="space-y-2 pt-1">
+                          <div className="flex items-center justify-between font-display text-[10px] font-bold uppercase tracking-wider text-zinc-750">
+                            <span className="text-[9.5px] text-zinc-800">
+                              Simulate Apple Music scrobble
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setAppleMusicSimulatedActive(!appleMusicSimulatedActive)}
+                              className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
+                                appleMusicSimulatedActive ? 'bg-orange-500' : 'bg-zinc-300'
+                              }`}
+                              aria-label="Toggle Apple Music simulation"
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                  appleMusicSimulatedActive ? 'translate-x-3' : 'translate-x-0'
+                                }`}
+                              />
+                            </button>
+                          </div>
+
+                          {appleMusicSimulatedActive && (
+                            <div className="space-y-2 mt-1 bg-white/40 p-2 rounded-lg border border-white/20">
+                              <div className="grid grid-cols-2 gap-1.5">
+                                <div className="flex flex-col gap-0.5">
+                                  <label className="text-[7.5px] font-display font-bold uppercase tracking-widest text-zinc-400">Track Title</label>
+                                  <input
+                                    type="text"
+                                    value={amTitle}
+                                    onChange={(e) => {
+                                      setAmTitle(e.target.value);
+                                      updateAppleMusicSimulation({ title: e.target.value, artist: amArtist, album: amAlbum, albumArtUrl: amArt });
+                                    }}
+                                    className="rounded border border-white/50 bg-white/80 py-0.5 px-1.5 text-[9px] outline-none"
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                  <label className="text-[7.5px] font-display font-bold uppercase tracking-widest text-zinc-400">Artist</label>
+                                  <input
+                                    type="text"
+                                    value={amArtist}
+                                    onChange={(e) => {
+                                      setAmArtist(e.target.value);
+                                      updateAppleMusicSimulation({ title: amTitle, artist: e.target.value, album: amAlbum, albumArtUrl: amArt });
+                                    }}
+                                    className="rounded border border-white/50 bg-white/80 py-0.5 px-1.5 text-[9px] outline-none"
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                  <label className="text-[7.5px] font-display font-bold uppercase tracking-widest text-zinc-400">Album Name</label>
+                                  <input
+                                    type="text"
+                                    value={amAlbum}
+                                    onChange={(e) => {
+                                      setAmAlbum(e.target.value);
+                                      updateAppleMusicSimulation({ title: amTitle, artist: amArtist, album: e.target.value, albumArtUrl: amArt });
+                                    }}
+                                    className="rounded border border-white/50 bg-white/80 py-0.5 px-1.5 text-[9px] outline-none"
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                  <label className="text-[7.5px] font-display font-bold uppercase tracking-widest text-zinc-400">Art Cover URL</label>
+                                  <input
+                                    type="text"
+                                    value={amArt}
+                                    onChange={(e) => {
+                                      setAmArt(e.target.value);
+                                      updateAppleMusicSimulation({ title: amTitle, artist: amArtist, album: amAlbum, albumArtUrl: e.target.value });
+                                    }}
+                                    className="rounded border border-white/50 bg-white/80 py-0.5 px-1.5 text-[9px] outline-none"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -554,7 +823,7 @@ function SceneControlsOverlay() {
                                 <button
                                   type="button"
                                   onClick={() => unpublishRoom(activeRoom?.id)}
-                                  className="flex-1 rounded-lg text-red-655 text-red-600 py-1.5 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer text-center"
+                                  className="flex-1 rounded-lg text-red-600 py-1.5 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer text-center"
                                 >
                                   Go Offline
                                 </button>
@@ -571,33 +840,6 @@ function SceneControlsOverlay() {
                           </form>
                         </div>
                       )}
-
-                      {isFirebaseConfigured && <div className="h-px bg-white/40" />}
-
-                      {controlRows.map((row) => (
-                        <label key={row.key} className="grid gap-1.5 pt-1.5 pb-2 border-b border-white/20">
-                          <div className="flex items-center justify-between text-[10px] font-display font-bold uppercase tracking-wider text-zinc-600">
-                            <span>{row.label}</span>
-                            <span>{Number(controls[row.key]).toFixed(row.step < 0.1 ? 2 : 1)}</span>
-                          </div>
-                          <input
-                            type="range"
-                            min={row.min}
-                            max={row.max}
-                            step={row.step}
-                            value={controls[row.key]}
-                            onChange={(event) => setSceneControl(row.key, Number(event.target.value))}
-                            onWheel={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              const dir = event.deltaY < 0 ? 1 : -1;
-                              const next = Math.max(row.min, Math.min(row.max, Number(controls[row.key]) + dir * row.step));
-                              setSceneControl(row.key, Number(next.toFixed(4)));
-                            }}
-                            className="cursor-pointer"
-                          />
-                        </label>
-                      ))}
                     </div>
                   </motion.div>
                 )}
