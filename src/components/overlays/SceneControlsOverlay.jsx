@@ -8,6 +8,36 @@ import { isFirebaseConfigured, auth } from '../../utils/firebase';
 import { signOut } from 'firebase/auth';
 import AuthModal from './AuthModal';
 
+// PKCE authorization helper functions
+const generateRandomString = (length) => {
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+  const values = crypto.getRandomValues(new Uint8Array(length));
+  return values.reduce((acc, x) => acc + possible[x % possible.length], '');
+};
+
+const sha256 = async (plain) => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(plain);
+  return window.crypto.subtle.digest('SHA-256', data);
+};
+
+const base64urlencode = (buffer) => {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+};
+
+const generateCodeChallenge = async (codeVerifier) => {
+  const hashed = await sha256(codeVerifier);
+  return base64urlencode(hashed);
+};
+
 function SceneControlsOverlay() {
   const canEditAlbums = useGalleryStore((state) => state.canEditAlbums);
   const vaultName = useGalleryStore((state) => state.vaultName);
@@ -617,11 +647,33 @@ function SceneControlsOverlay() {
                             <div className="space-y-2">
                               <button
                                 type="button"
-                                onClick={() => {
-                                  const clientId = 'da12502621fc4df59451be213b1f51ee';
-                                  const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
-                                  const scopes = encodeURIComponent('user-read-currently-playing user-top-read user-library-read');
-                                  window.location.href = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${redirectUri}&scope=${scopes}`;
+                                onClick={async () => {
+                                  try {
+                                    const clientId = 'da12502621fc4df59451be213b1f51ee';
+                                    const redirectUri = window.location.origin + window.location.pathname;
+                                    const scopes = 'user-read-currently-playing user-top-read user-library-read';
+                                    
+                                    const verifier = generateRandomString(64);
+                                    localStorage.setItem('spotify_code_verifier', verifier);
+                                    
+                                    const challenge = await generateCodeChallenge(verifier);
+                                    
+                                    const authUrl = new URL("https://accounts.spotify.com/authorize");
+                                    authUrl.search = new URLSearchParams({
+                                      response_type: 'code',
+                                      client_id: clientId,
+                                      scope: scopes,
+                                      redirect_uri: redirectUri,
+                                      code_challenge_method: 'S256',
+                                      code_challenge: challenge,
+                                      show_dialog: 'true'
+                                    }).toString();
+                                    
+                                    window.location.href = authUrl.toString();
+                                  } catch (err) {
+                                    console.error('Failed to initiate Spotify login:', err);
+                                    alert('Failed to connect to Spotify: ' + err.message);
+                                  }
                                 }}
                                 className="w-full flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn text-zinc-850 cursor-pointer"
                               >
