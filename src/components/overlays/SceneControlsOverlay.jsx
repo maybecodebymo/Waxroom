@@ -56,6 +56,7 @@ function SceneControlsOverlay() {
   const clearCrate = useGalleryStore((state) => state.clearCrate);
   const lastFmUsername = useGalleryStore((state) => state.lastFmUsername);
   const setLastFmUsername = useGalleryStore((state) => state.setLastFmUsername);
+  const listeningHistory = useGalleryStore((state) => state.listeningHistory);
 
   const [isMobile, setIsMobile] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -239,82 +240,7 @@ function SceneControlsOverlay() {
                     className="overflow-hidden"
                   >
                     <div ref={containerRef} className="max-h-[58vh] space-y-4 overflow-y-auto px-4 pb-4 mt-3">
-                      <button
-                        onClick={toggleEditMode}
-                        className={`flex w-full items-center justify-between rounded-xl p-2.5 transition-all cursor-pointer glass-btn ${
-                          canEditAlbums
-                            ? 'bg-orange-500/10 text-orange-855 border-orange-300'
-                            : 'text-zinc-650 border-white/40'
-                        }`}
-                      >
-                        <div className="flex flex-col items-start font-display">
-                          <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
-                            <Database size={13} /> Personalize Room
-                          </span>
-                          <span className="mt-0.5 text-[8.5px] font-bold text-zinc-500 uppercase tracking-widest pl-[21px]">Saved Locally</span>
-                        </div>
-                        <span className="text-[10px] font-display uppercase font-bold">{canEditAlbums ? 'On' : 'Off'}</span>
-                      </button>
-
-                      <div className="flex flex-col gap-1.5 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-                        <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
-                          Room Name
-                        </span>
-                        <div className="relative flex items-center">
-                          <input 
-                            type="text" 
-                            value={vaultName}
-                            onChange={(e) => setVaultName(e.target.value)}
-                            placeholder="Name your vault" 
-                            className="w-full rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-base md:text-[11px] font-semibold outline-none focus:border-orange-500 focus:bg-white transition-all"
-                          />
-                        </div>
-                      </div>
-
-                      <form 
-                        onSubmit={async (e) => {
-                          e.preventDefault();
-                          if (!lfmUser.trim()) return;
-                          setIsSyncing(true);
-                          try {
-                            setLastFmUsername(lfmUser.trim());
-                            const newRoom = await fetchLastFmRoom(lfmUser.trim(), import.meta.env.VITE_LASTFM_API_KEY);
-                            if (newRoom.length > 0) {
-                              replaceRoom(newRoom);
-                            } else {
-                              alert("No albums found for this Last.fm user.");
-                            }
-                          } catch (err) {
-                            alert(err.message || 'Failed to sync with Last.fm');
-                          } finally {
-                            setIsSyncing(false);
-                          }
-                        }}
-                        className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]"
-                      >
-                        <span className="flex items-center gap-2 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
-                          Last.fm Auto-Sync
-                        </span>
-                        <div className="flex gap-2">
-                            <input 
-                             type="text" 
-                             value={lfmUser}
-                             disabled={isSyncing}
-                             onChange={(e) => setLfmUser(e.target.value)}
-                             placeholder="Username" 
-                             className="min-w-0 flex-1 rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-base md:text-[11px] outline-none focus:border-orange-500 focus:bg-white transition-all"
-                           />
-                           <button 
-                             type="submit" 
-                             disabled={isSyncing || !lfmUser.trim()}
-                             className="shrink-0 rounded-lg text-zinc-955 px-3 py-1.5 text-[10px] font-display font-bold uppercase tracking-widest transition-all glass-btn cursor-pointer"
-                           >
-                             {isSyncing ? 'Syncing...' : 'Sync'}
-                           </button>
-                        </div>
-                      </form>
-
-                      {/* Cloud Sync / Profile Dashboard */}
+                      {/* Cloud Sync / Profile Dashboard (Moved to Top) */}
                       {isFirebaseConfigured ? (
                         <div className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)] text-zinc-900">
                           <span className="flex items-center gap-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
@@ -405,6 +331,64 @@ function SceneControlsOverlay() {
                         </div>
                       ) : null}
 
+                      <div className="flex flex-col gap-1.5 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+                        <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
+                          Room Name
+                        </span>
+                        <div className="relative flex items-center">
+                          <input 
+                            type="text" 
+                            value={vaultName}
+                            onChange={(e) => setVaultName(e.target.value)}
+                            placeholder="Name your vault" 
+                            className="w-full rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-base md:text-[11px] font-semibold outline-none focus:border-orange-500 focus:bg-white transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      <form 
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          if (!lfmUser.trim()) return;
+                          setIsSyncing(true);
+                          try {
+                            setLastFmUsername(lfmUser.trim());
+                            const newRoom = await fetchLastFmRoom(lfmUser.trim(), import.meta.env.VITE_LASTFM_API_KEY);
+                            if (newRoom.length > 0) {
+                              replaceRoom(newRoom);
+                            } else {
+                              alert("No albums found for this Last.fm user.");
+                            }
+                          } catch (err) {
+                            alert(err.message || 'Failed to sync with Last.fm');
+                          } finally {
+                            setIsSyncing(false);
+                          }
+                        }}
+                        className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]"
+                      >
+                        <span className="flex items-center gap-2 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
+                          Last.fm Auto-Sync
+                        </span>
+                        <div className="flex gap-2">
+                            <input 
+                             type="text" 
+                             value={lfmUser}
+                             disabled={isSyncing}
+                             onChange={(e) => setLfmUser(e.target.value)}
+                             placeholder="Username" 
+                             className="min-w-0 flex-1 rounded-lg border border-white/50 bg-white/80 py-1.5 px-3 text-base md:text-[11px] outline-none focus:border-orange-500 focus:bg-white transition-all"
+                           />
+                           <button 
+                             type="submit" 
+                             disabled={isSyncing || !lfmUser.trim()}
+                             className="shrink-0 rounded-lg text-zinc-955 px-3 py-1.5 text-[10px] font-display font-bold uppercase tracking-widest transition-all glass-btn cursor-pointer"
+                           >
+                             {isSyncing ? 'Syncing...' : 'Sync'}
+                           </button>
+                        </div>
+                      </form>
+
                       {/* Crate Inbox (Airbuds-style Auto-Collected Shelf) */}
                       {canEditAlbums && crateInbox && crateInbox.length > 0 ? (
                         <div className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)] text-zinc-900">
@@ -466,6 +450,36 @@ function SceneControlsOverlay() {
                           <p className="text-[8px] font-display font-bold uppercase tracking-widest text-zinc-400 text-center leading-normal mt-0.5">
                             Recent scrobbles are auto-collected here.
                           </p>
+                        </div>
+                      ) : null}
+
+                      {/* Listened To / Recently Played Shelf */}
+                      {listeningHistory && listeningHistory.length > 0 ? (
+                        <div className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)] text-zinc-900">
+                          <span className="flex items-center gap-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
+                            <Disc size={12} className="text-zinc-600 animate-spin" style={{ animationDuration: '6s' }} />
+                            Listened To History
+                          </span>
+                          
+                          <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+                            {listeningHistory.map((track, index) => (
+                              <div key={index} className="flex items-center gap-2 bg-white/50 border border-white/20 rounded-lg p-2 text-zinc-800">
+                                <img
+                                  src={track.albumArtUrl || '/placeholder-album.png'}
+                                  alt={track.albumTitle || 'Track Art'}
+                                  className="h-7 w-7 rounded object-cover shadow-sm bg-zinc-200 shrink-0"
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[9px] font-display font-bold uppercase tracking-wide text-zinc-900 truncate leading-snug">
+                                    {track.trackTitle}
+                                  </p>
+                                  <p className="text-[8px] font-display font-semibold text-zinc-500 truncate leading-none mt-0.5">
+                                    {track.artistName} • {track.albumTitle || 'Single'}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       ) : null}
 

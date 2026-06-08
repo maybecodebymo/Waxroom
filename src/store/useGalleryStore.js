@@ -47,6 +47,7 @@ export const useGalleryStore = create(
       myAlbums: [],
       albums: [],
       crateInbox: [],
+      listeningHistory: [],
       genres: ['All'],
       user: null,
       lastFmUsername: '',
@@ -519,6 +520,18 @@ export const useGalleryStore = create(
           }
         }
       },
+      addTrackToHistory: (track) => {
+        if (!track) return;
+        set((state) => {
+          const prev = state.listeningHistory[0];
+          if (prev && prev.trackTitle.toLowerCase() === track.trackTitle.toLowerCase() && prev.artistName.toLowerCase() === track.artistName.toLowerCase()) {
+            return state;
+          }
+          return {
+            listeningHistory: [track, ...state.listeningHistory].slice(0, 10)
+          };
+        });
+      },
       subscribeToActiveRoomPlayback: (targetUid) => {
         if (!isFirebaseConfigured || !db || !targetUid) return () => {};
         try {
@@ -548,6 +561,7 @@ export const useGalleryStore = create(
       partialize: (state) => ({
         myAlbums: state.myAlbums,
         crateInbox: state.crateInbox,
+        listeningHistory: state.listeningHistory,
         timelineRooms: state.timelineRooms,
         sceneControls: state.sceneControls,
         sceneControlsVersion,
@@ -583,6 +597,7 @@ export const useGalleryStore = create(
           myAlbums,
           albums: myAlbums,
           crateInbox: Array.isArray(persistedState?.crateInbox) ? persistedState.crateInbox : [],
+          listeningHistory: Array.isArray(persistedState?.listeningHistory) ? persistedState.listeningHistory : [],
           genres: buildGenres(myAlbums),
           timelineRooms,
           sceneControls,

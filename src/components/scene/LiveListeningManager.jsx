@@ -39,6 +39,9 @@ function LiveListeningManager() {
             title: nowPlaying.trackTitle
           };
 
+          // Append to listening history
+          useGalleryStore.getState().addTrackToHistory(nowPlaying);
+
           // Check if the album is already collected or in the crate inbox
           const albumCleanName = (nowPlaying.albumTitle || '').toLowerCase().trim();
           const isCollected = myAlbums.some(
