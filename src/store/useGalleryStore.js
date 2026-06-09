@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { db, isFirebaseConfigured, auth } from '../utils/firebase';
-import { requestAlert, requestPrompt } from '../utils/dialogService';
+import { requestAlert, requestPrompt, requestConfirmation } from '../utils/dialogService';
 import { collection, addDoc, getDocs, getDoc, setDoc, doc, query, orderBy, limit, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { 
   onAuthStateChanged, 
@@ -9,7 +9,10 @@ import {
   isSignInWithEmailLink, 
   signInWithEmailLink, 
   EmailAuthProvider, 
-  linkWithCredential 
+  linkWithCredential,
+  getRedirectResult,
+  GoogleAuthProvider,
+  signInWithRedirect,
 } from 'firebase/auth';
 
 const buildGenres = (albums) => ['All', ...new Set(albums.map((album) => album.genre))];
@@ -18,14 +21,14 @@ const defaultSceneControls = {
   globeRadius: 7.1,
   globeHeight: 4.8,
   dragSpeed: 0.0044,
-  dragDamp: 0.1,
+  dragDamp: 0.06,
   tiltFactor: 0.22,
   focusScale: 1.52,
   dimScale: 0.58,
   dimOpacity: 0.2,
   zoomIn: 4.2,
   zoomOut: 0,
-  camDamp: 0.08,
+  camDamp: 0.12,
 };
 
 const sceneControlsVersion = 2;
@@ -65,6 +68,9 @@ export const useGalleryStore = create(
       sharedRoomDocId: null,
       selectedAlbumId: null,
       activeGenre: 'All',
+      searchQuery: '',
+      sortBy: 'dateAdded',
+      sortOrder: 'desc',
       isAddModalOpen: false,
       editingAlbumId: null,
       canEditAlbums: true,
@@ -232,6 +238,9 @@ export const useGalleryStore = create(
               ? state.selectedAlbumId
               : null,
         })),
+      setSearchQuery: (query) => set({ searchQuery: query }),
+      setSortBy: (sortBy) => set({ sortBy }),
+      setSortOrder: (order) => set({ sortOrder: order }),
       setAddModalOpen: (isOpen) => {
         if (!get().canEditAlbums) {
           return;
@@ -797,6 +806,33 @@ export const useGalleryStore = create(
           };
 
           processEmailLink();
+        } else {
+          // Handle Google redirect sign-in result (PWA-friendly)
+          getRedirectResult(auth).then((result) => {
+            if (result) {
+              console.log('Redirect sign-in successful for', result.user?.email);
+              get().backupRoomToCloud();
+            }
+          }).catch(async (err) => {
+            if (err.code === 'auth/credential-already-in-use') {
+              const confirmed = await requestConfirmation({
+                title: 'Switch Profile',
+                message: 'This Google account is already linked to another Waxroom. Switching will load that profile and replace local guest changes.',
+                confirmLabel: 'Switch',
+              });
+              if (confirmed) {
+                await signInWithRedirect(auth, new GoogleAuthProvider());
+                // Will redirect away
+              }
+            } else {
+              console.error('Redirect sign-in error:', err);
+              await requestAlert({
+                title: 'Sign-In Failed',
+                message: err.message || 'Could not complete Google sign-in.',
+                confirmLabel: 'OK',
+              });
+            }
+          });
         }
 
         return onAuthStateChanged(auth, (firebaseUser) => {

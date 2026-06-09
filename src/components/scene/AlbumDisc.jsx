@@ -3,7 +3,7 @@ import { useTexture } from '@react-three/drei';
 import { Suspense, useMemo, useRef, Component } from 'react';
 import * as THREE from 'three';
 
-const EASE = 0.12;
+const EASE = 0.2;
 
 /* ── tiny 1×1 grey fallback data-URI (only used as placeholder) ── */
 const FALLBACK_TEX =

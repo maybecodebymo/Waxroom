@@ -66,16 +66,42 @@ function GalleryScene() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Arrow key rotation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        const step = e.key === 'ArrowLeft' ? -1 : 1;
+        targetRotationRef.current += step * 0.3;
+        baseRotationRef.current = targetRotationRef.current;
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const selectedAlbum = useMemo(() => {
     if (!selectedAlbumId) return null;
     return albums.find((a) => a.id === selectedAlbumId) ||
            crateInbox.find((a) => a.id === selectedAlbumId);
   }, [albums, crateInbox, selectedAlbumId]);
 
-  const visibleAlbums = useMemo(
-    () => albums.filter((album) => activeGenre === 'All' || album.genre === activeGenre),
-    [albums, activeGenre]
-  );
+  const searchQuery = useGalleryStore((state) => state.searchQuery);
+
+  const visibleAlbums = useMemo(() => {
+    return albums.filter((album) => {
+      if (activeGenre !== 'All' && album.genre !== activeGenre) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const title = (album.album_title || '').toLowerCase();
+        const artist = (album.artist || '').toLowerCase();
+        if (!title.includes(q) && !artist.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [albums, activeGenre, searchQuery]);
 
   const renderAlbums = useMemo(() => {
     const list = [...visibleAlbums];

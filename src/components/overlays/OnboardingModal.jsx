@@ -62,7 +62,7 @@ function OnboardingModal() {
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-[420px] overflow-hidden rounded-[28px] p-6 md:p-8 text-center glass border border-white/60 shadow-[0_24px_50px_rgba(0,0,0,0.15)] bg-white/60 backdrop-blur-xl"
       >
         {/* Main Logo */}

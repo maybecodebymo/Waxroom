@@ -127,7 +127,7 @@ function SceneControlsOverlay() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.45, delay: 0.15 }}
+          transition={{ duration: 0.2 }}
           className={`absolute right-4 top-[72px] md:top-8 z-30 md:right-8 ${
             showExpanded ? 'w-[280px] md:w-[330px] rounded-2xl glass' : 'w-auto'
           }`}
@@ -360,7 +360,7 @@ function SceneControlsOverlay() {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.35, ease: [0.19, 1, 0.22, 1] }}
+                    transition={{ duration: 0.2, ease: [0.19, 1, 0.22, 1] }}
                     className="overflow-hidden"
                   >
                     <div ref={containerRef} className="max-h-[58vh] space-y-4 overflow-y-auto px-4 pb-4 mt-3">

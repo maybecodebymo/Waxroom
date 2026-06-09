@@ -103,11 +103,11 @@ function AlbumDetailOverlay() {
           y: 0,
           opacity: 1,
           transition: {
-            duration: 0.35,
+            duration: 0.22,
             ease: [0.16, 1, 0.3, 1],
           },
         },
-        exit: { y: '120%', opacity: 1, transition: { duration: 0.25 } },
+        exit: { y: '120%', opacity: 1, transition: { duration: 0.15 } },
       };
     } else {
       return {
@@ -117,11 +117,11 @@ function AlbumDetailOverlay() {
           y: '-50%',
           opacity: 1,
           transition: {
-            duration: 0.4,
+            duration: 0.25,
             ease: [0.16, 1, 0.3, 1],
           },
         },
-        exit: { x: '100%', y: '-50%', opacity: 0, transition: { duration: 0.22 } },
+        exit: { x: '100%', y: '-50%', opacity: 0, transition: { duration: 0.15 } },
       };
     }
   }, [isMobile]);

@@ -216,7 +216,7 @@ function TutorialTour() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 0.85, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.25 }}
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center z-20"
           >
             <div className="h-72 w-72 md:h-96 md:w-96 rounded-full border-4 border-dashed border-orange-500/70 animate-[spin_40s_linear_infinite]" />
@@ -231,7 +231,7 @@ function TutorialTour() {
           key={tourStepIndex}
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
+          transition={{ duration: 0.2 }}
           className="glass rounded-3xl p-5 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.22)] border border-white/80"
         >
           <div className="flex items-center justify-between mb-3">

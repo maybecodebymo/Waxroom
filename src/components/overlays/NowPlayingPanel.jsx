@@ -204,7 +204,7 @@ function NowPlayingPanel() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 20 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.25 }}
           onClick={handlePanelClick}
           className="glass rounded-2xl p-4 shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-white/60 text-zinc-955 text-center space-y-4 cursor-pointer hover:bg-white/85 hover:-translate-y-0.5 transition-all"
         >
@@ -315,7 +315,7 @@ function NowPlayingPanel() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 15 }}
-          transition={{ duration: 0.35 }}
+          transition={{ duration: 0.2 }}
           onClick={handlePanelClick}
           className="glass rounded-xl p-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-white/60 pointer-events-auto flex items-center justify-between gap-3 text-zinc-955 cursor-pointer hover:bg-white/85 transition-all"
         >

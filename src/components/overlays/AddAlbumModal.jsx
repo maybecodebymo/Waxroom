@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, Plus, Trash2, X, Search, Star, HelpCircle, ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Trash2, X, Search, Star, HelpCircle, ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { useGalleryStore } from '../../store/useGalleryStore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../../utils/firebase';
 
 const safeTrackId = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -60,6 +62,7 @@ function AddAlbumModal() {
   const [isSearching, setIsSearching] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const hasSeen = localStorage.getItem('waxroom_modal_tour_seen');
@@ -254,34 +257,54 @@ function AddAlbumModal() {
     }
   };
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     if (!canSubmit) return;
+    setIsSaving(true);
 
-    const tracklist = tracks
-      .map((track) => ({ title: track.title.trim(), category: track.category, previewUrl: track.previewUrl || null }))
-      .filter((track) => track.title.length > 0);
+    try {
+      let finalUrl = textureUrl;
 
-    const payload = {
-      artist: artist.trim(),
-      album_title: albumTitle.trim(),
-      genre: genre.trim(),
-      rating: Number(rating),
-      description: description.trim() || 'Fresh pressing added through the in-app crate tool.',
-      texture_url: textureUrl,
-      tracklist,
-    };
+      // Upload data URI to Firebase Storage if available (works only when Firebase is configured)
+      if (finalUrl && finalUrl.startsWith('data:') && storage) {
+        try {
+          const blob = await (await fetch(finalUrl)).blob();
+          const fileName = `album_art/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.jpg`;
+          const storageRef = ref(storage, fileName);
+          await uploadBytes(storageRef, blob);
+          finalUrl = await getDownloadURL(storageRef);
+        } catch (uploadErr) {
+          console.error('Failed to upload image to Firebase Storage, falling back to data URI:', uploadErr);
+        }
+      }
 
-    if (editingAlbumId) {
-      updateAlbum(editingAlbumId, payload);
-      selectAlbum(null);
-    } else {
-      addAlbum({
-        id: `a-${Date.now()}`,
-        ...payload,
-      });
+      const tracklist = tracks
+        .map((track) => ({ title: track.title.trim(), category: track.category, previewUrl: track.previewUrl || null }))
+        .filter((track) => track.title.length > 0);
+
+      const payload = {
+        artist: artist.trim(),
+        album_title: albumTitle.trim(),
+        genre: genre.trim(),
+        rating: Number(rating),
+        description: description.trim() || 'Fresh pressing added through the in-app crate tool.',
+        texture_url: finalUrl,
+        tracklist,
+      };
+
+      if (editingAlbumId) {
+        updateAlbum(editingAlbumId, payload);
+        selectAlbum(null);
+      } else {
+        addAlbum({
+          id: `a-${Date.now()}`,
+          ...payload,
+        });
+      }
+
+      closeAlbumModal();
+    } finally {
+      setIsSaving(false);
     }
-
-    closeAlbumModal();
   };
 
   return (
@@ -301,7 +324,7 @@ function AddAlbumModal() {
         initial={{ opacity: 0, scale: 0.96, y: 18 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.98, y: 12 }}
-        transition={{ duration: 0.28 }}
+        transition={{ duration: 0.18 }}
         onSubmit={(e) => {
           e.preventDefault();
           onSubmit();
@@ -340,7 +363,7 @@ function AddAlbumModal() {
                 initial={{ opacity: 0, height: 0, marginBottom: 0 }}
                 animate={{ opacity: 1, height: 'auto', marginBottom: 20 }}
                 exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                transition={{ duration: 0.18, ease: 'easeInOut' }}
                 className="overflow-hidden"
               >
                 <div className="rounded-2xl border border-orange-250 bg-orange-50/40 backdrop-blur-md p-4 text-zinc-900 shadow-sm flex flex-col gap-2.5">
@@ -610,10 +633,14 @@ function AddAlbumModal() {
           <div className="flex justify-end p-5 pt-3 md:p-7 md:pt-4 border-t border-white/20 shrink-0">
             <button
               type="submit"
-              disabled={!canSubmit}
-              className="rounded-xl bg-orange-500 hover:bg-orange-600 px-5 py-2 text-xs font-display font-bold uppercase tracking-wider text-white shadow-[0_4px_12px_rgba(234,88,12,0.2)] transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none active:scale-95"
+              disabled={!canSubmit || isSaving}
+              className="inline-flex items-center gap-2 rounded-xl bg-orange-500 hover:bg-orange-600 px-5 py-2 text-xs font-display font-bold uppercase tracking-wider text-white shadow-[0_4px_12px_rgba(234,88,12,0.2)] transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none active:scale-95"
             >
-              {editingAlbumId ? 'Save Changes' : 'Add Album'}
+              {isSaving ? (
+                <><Loader2 size={13} className="animate-spin" /> Saving...</>
+              ) : (
+                editingAlbumId ? 'Save Changes' : 'Add Album'
+              )}
             </button>
           </div>
       </motion.form>

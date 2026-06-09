@@ -224,7 +224,7 @@ function RecommendationsOverlay() {
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          transition={{ duration: 0.28 }}
+          transition={{ duration: 0.18 }}
           className="absolute bottom-20 right-4 z-30 w-[min(92vw,380px)] rounded-2xl glass p-4 md:right-10 md:bottom-24 pointer-events-auto"
         >
           <div className="mb-3 flex items-center justify-between">
