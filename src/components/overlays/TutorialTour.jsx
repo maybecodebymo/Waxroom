@@ -7,7 +7,7 @@ const tourSteps = [
   {
     title: '1. The Music Sphere',
     icon: Disc,
-    description: 'Explore your music library in full 3D! Drag anywhere on the screen to rotate the sphere. Scroll or pinch to zoom. Click on any record to zoom in, read its details, and explore its tracklist.',
+    description: 'Explore your music library in 3D! Drag or use arrow keys to rotate. Pinch or vertical-scroll to warp the sphere\'s depth, spread, and size. Click any record to zoom in, read its details, and explore its tracklist.',
     cardPosition: 'bottom-28 left-1/2 -translate-x-1/2 w-[min(90vw,420px)]',
     targetId: null,
   },
@@ -42,7 +42,7 @@ const tourSteps = [
   {
     title: '6. Tune Settings',
     icon: SlidersHorizontal,
-    description: "Take total control of your room! Use the 'Tune' panel to configure your Selector Profile, manage multiple rooms, or link your Last.fm account for real-time tracking.",
+    description: "Total control of your room! Use the Warp slider to adjust the sphere's depth, spread, and size. Configure your Profile, manage multiple rooms, or link Last.fm for real-time syncing.",
     cardPosition: 'top-24 right-4 md:right-8 w-[min(90vw,380px)]',
     targetId: 'tune-nav-btn',
   },

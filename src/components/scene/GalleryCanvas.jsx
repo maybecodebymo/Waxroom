@@ -145,8 +145,15 @@ function GalleryScene() {
         if (event && event.cancelable) {
           event.preventDefault();
         }
-        targetRotationRef.current -= (dx + dy) * controls.dragSpeed * 0.5;
-        baseRotationRef.current = targetRotationRef.current;
+        if (dx) {
+          targetRotationRef.current -= dx * controls.dragSpeed * 0.5;
+          baseRotationRef.current = targetRotationRef.current;
+        }
+        if (dy) {
+          const currentZoom = useGalleryStore.getState().sceneControls.zoomOut;
+          const nextZoom = Math.max(-8, Math.min(8, currentZoom + dy * 0.02));
+          setSceneControl('zoomOut', nextZoom);
+        }
       },
       onPinch: ({ delta: [d], event }) => {
         if (event && event.cancelable) {

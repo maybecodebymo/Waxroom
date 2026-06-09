@@ -49,6 +49,8 @@ function SceneControlsOverlay() {
   const isHistoryOpen = useGalleryStore((state) => state.isHistoryOpen);
   const setHistoryOpen = useGalleryStore((state) => state.setHistoryOpen);
 
+  const sceneControls = useGalleryStore((state) => state.sceneControls);
+  const setSceneControl = useGalleryStore((state) => state.setSceneControl);
   const [isMobile, setIsMobile] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [lfmUser, setLfmUser] = useState('');
@@ -426,6 +428,30 @@ function SceneControlsOverlay() {
 
                         </div>
                       ) : null}
+
+                      {/* Warp Slider */}
+                      <div className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+                        <span className="flex items-center gap-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
+                          <SlidersHorizontal size={12} className="text-orange-500" />
+                          Warp
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-display font-bold uppercase tracking-wider text-zinc-500 shrink-0 w-10">Tight</span>
+                          <input
+                            type="range"
+                            min="-8"
+                            max="8"
+                            step="0.1"
+                            value={sceneControls.zoomOut}
+                            onChange={(e) => setSceneControl('zoomOut', parseFloat(e.target.value))}
+                            className="w-full h-1.5 appearance-none cursor-pointer rounded-full bg-zinc-300 accent-orange-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-zinc-300 [&::-webkit-slider-thumb]:shadow-sm"
+                          />
+                          <span className="text-[9px] font-display font-bold uppercase tracking-wider text-zinc-500 shrink-0 w-10 text-right">Wide</span>
+                        </div>
+                        <div className="text-center text-[10px] font-display font-bold text-zinc-600">
+                          {sceneControls.zoomOut.toFixed(1)}
+                        </div>
+                      </div>
 
                       <div className="flex flex-col gap-1.5 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
                         <span className="text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
