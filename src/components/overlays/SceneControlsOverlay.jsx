@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Link, SlidersHorizontal, Globe, X, Cloud, Send, LogIn, UserCheck, Disc, Trash2, Plus, Check } from 'lucide-react';
+import { Link, SlidersHorizontal, Globe, X, Send, LogIn, UserCheck, Disc, Trash2, Plus, Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { compressToEncodedURIComponent } from 'lz-string';
 import { useGalleryStore } from '../../store/useGalleryStore';
@@ -24,7 +24,7 @@ function SceneControlsOverlay() {
   const isViewingShared = useGalleryStore((state) => state.isViewingShared);
   const tourStepIndex = useGalleryStore((state) => state.tourStepIndex || 0);
 
-  const backupRoomToCloud = useGalleryStore((state) => state.backupRoomToCloud);
+
   const isPublished = useGalleryStore((state) => state.isPublished);
   const publishedDescription = useGalleryStore((state) => state.publishedDescription);
   const unpublishRoom = useGalleryStore((state) => state.unpublishRoom);
@@ -57,9 +57,6 @@ function SceneControlsOverlay() {
   const [lfmError, setLfmError] = useState('');
   const [shareCopied, setShareCopied] = useState(false);
 
-  const [cloudStatus, setCloudStatus] = useState('');
-  const [cloudError, setCloudError] = useState('');
-  const [isCloudLoading, setIsCloudLoading] = useState(false);
   const [description, setDescription] = useState('');
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -416,28 +413,6 @@ function SceneControlsOverlay() {
                                   Your room is stored locally. Link your profile to restore it across other devices.
                                 </p>
                               )}
-                              
-                              <button
-                                type="button"
-                                disabled={isCloudLoading}
-                                onClick={async () => {
-                                  setIsCloudLoading(true);
-                                  setCloudStatus('');
-                                  setCloudError('');
-                                  const res = await backupRoomToCloud();
-                                  setIsCloudLoading(false);
-                                  if (res.success) {
-                                    setCloudStatus('Sync completed!');
-                                    setTimeout(() => setCloudStatus(''), 3000);
-                                  } else {
-                                    setCloudError(res.error || 'Backup failed');
-                                  }
-                                }}
-                                className="w-full flex items-center justify-center gap-1.5 rounded-lg py-2 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn text-zinc-850 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-                              >
-                                <Cloud size={12} className="text-orange-500 animate-pulse" />
-                                {isCloudLoading ? 'Syncing...' : 'Sync Room to Cloud'}
-                              </button>
                             </div>
                           ) : (
                             <button
@@ -449,12 +424,6 @@ function SceneControlsOverlay() {
                             </button>
                           )}
 
-                          {cloudStatus && (
-                            <p className="text-[9px] font-display font-bold uppercase text-emerald-600 mt-1">{cloudStatus}</p>
-                          )}
-                          {cloudError && (
-                            <p className="text-[9px] font-display font-bold uppercase text-red-600 mt-1">{cloudError}</p>
-                          )}
                         </div>
                       ) : null}
 

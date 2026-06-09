@@ -14,6 +14,7 @@ import LiveListeningManager from './components/scene/LiveListeningManager';
 import NowPlayingPanel from './components/overlays/NowPlayingPanel';
 import CrateHistoryPanel from './components/overlays/CrateHistoryPanel';
 import ConfirmDialog from './components/overlays/ConfirmDialog';
+import PromptDialog from './components/overlays/PromptDialog';
 import { useGalleryStore } from './store/useGalleryStore';
 
 const fadeIn = {
@@ -36,6 +37,8 @@ const formatRoomName = (name) => {
 
 function App() {
   const [confirmRequest, setConfirmRequest] = useState(null);
+  const [alertRequest, setAlertRequest] = useState(null);
+  const [promptRequest, setPromptRequest] = useState(null);
   const isAddModalOpen = useGalleryStore((state) => state.isAddModalOpen);
   const canEditAlbums = useGalleryStore((state) => state.canEditAlbums);
   const setAddModalOpen = useGalleryStore((state) => state.setAddModalOpen);
@@ -107,8 +110,20 @@ function App() {
     const handleConfirmRequest = (event) => {
       setConfirmRequest(event.detail);
     };
+    const handleAlertRequest = (event) => {
+      setAlertRequest(event.detail);
+    };
+    const handlePromptRequest = (event) => {
+      setPromptRequest(event.detail);
+    };
     window.addEventListener('waxroom:confirm', handleConfirmRequest);
-    return () => window.removeEventListener('waxroom:confirm', handleConfirmRequest);
+    window.addEventListener('waxroom:alert', handleAlertRequest);
+    window.addEventListener('waxroom:prompt', handlePromptRequest);
+    return () => {
+      window.removeEventListener('waxroom:confirm', handleConfirmRequest);
+      window.removeEventListener('waxroom:alert', handleAlertRequest);
+      window.removeEventListener('waxroom:prompt', handlePromptRequest);
+    };
   }, []);
 
   // Subscribe to live room playback if visiting another user's live room
@@ -289,6 +304,44 @@ function App() {
             onConfirm={() => {
               confirmRequest.resolve(true);
               setConfirmRequest(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {alertRequest && (
+          <ConfirmDialog
+            title={alertRequest.title}
+            message={alertRequest.message}
+            confirmLabel={alertRequest.confirmLabel || 'OK'}
+            cancelLabel=""
+            tone={alertRequest.tone}
+            onConfirm={() => {
+              alertRequest.resolve();
+              setAlertRequest(null);
+            }}
+            onCancel={() => {
+              alertRequest.resolve();
+              setAlertRequest(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {promptRequest && (
+          <PromptDialog
+            title={promptRequest.title}
+            message={promptRequest.message}
+            placeholder={promptRequest.placeholder}
+            confirmLabel={promptRequest.confirmLabel || 'Confirm'}
+            cancelLabel={promptRequest.cancelLabel || 'Cancel'}
+            onConfirm={(value) => {
+              promptRequest.resolve(value);
+              setPromptRequest(null);
+            }}
+            onCancel={() => {
+              promptRequest.resolve(null);
+              setPromptRequest(null);
             }}
           />
         )}

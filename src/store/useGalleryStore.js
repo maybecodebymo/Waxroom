@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { db, isFirebaseConfigured, auth } from '../utils/firebase';
-import { requestConfirmation } from '../utils/dialogService';
+import { requestAlert, requestPrompt } from '../utils/dialogService';
 import { collection, addDoc, getDocs, getDoc, setDoc, doc, query, orderBy, limit, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { 
   onAuthStateChanged, 
@@ -263,6 +263,7 @@ export const useGalleryStore = create(
         });
 
         get().syncLiveRoomToFirestore();
+        get().backupRoomToCloud();
       },
       addAlbumToMyRoom: (albumObject) => {
         if (!albumObject || !get().canEditAlbums) return false;
@@ -326,6 +327,7 @@ export const useGalleryStore = create(
         });
 
         get().syncLiveRoomToFirestore();
+        get().backupRoomToCloud();
       },
       deleteAlbum: (albumId) => {
         if (!get().canEditAlbums || get().isViewingShared) return;
@@ -342,6 +344,7 @@ export const useGalleryStore = create(
         });
 
         get().syncLiveRoomToFirestore();
+        get().backupRoomToCloud();
       },
       replaceRoom: (newAlbums) => {
         if (!get().canEditAlbums || get().isViewingShared) return;
@@ -737,59 +740,63 @@ export const useGalleryStore = create(
 
         // Check if loading from email sign-in link
         if (isSignInWithEmailLink(auth, window.location.href)) {
-          let email = window.localStorage.getItem('emailForSignIn');
-          if (!email) {
-            email = window.prompt('Please enter your email to confirm sign-in:');
-          }
-          if (email) {
+          const processEmailLink = async () => {
+            let email = window.localStorage.getItem('emailForSignIn');
+            if (!email) {
+              email = await requestPrompt({
+                title: 'Email Confirmation',
+                message: 'Enter the email you used to sign in:',
+                placeholder: 'your@email.com',
+                confirmLabel: 'Confirm',
+              });
+            }
+            if (!email) return;
+
             emailLinkSignInPending = true;
-            const completeEmailSignIn = async () => {
-              try {
-                const currentUser = auth.currentUser;
-                const credential = EmailAuthProvider.credentialWithLink(email, window.location.href);
-                
-                if (currentUser && currentUser.isAnonymous) {
-                  try {
-                    await linkWithCredential(currentUser, credential);
-                    await get().backupRoomToCloud();
-                  } catch (linkErr) {
-                    if (linkErr.code === 'auth/credential-already-in-use') {
-                      const confirmMerge = await requestConfirmation({
-                        title: 'Switch Profile',
-                        message: 'This email account is already linked to another Waxroom. Switching will load that profile and replace local guest changes.',
-                        confirmLabel: 'Switch',
-                      });
-                      if (confirmMerge) {
-                        await signInWithEmailLink(auth, email, window.location.href);
-                      }
-                    } else {
-                      throw linkErr;
-                    }
-                  }
-                } else {
-                  await signInWithEmailLink(auth, email, window.location.href);
-                }
-              } catch (err) {
-                console.error('Email link sign-in failed:', err);
-                alert('Sign-in failed: ' + (err.message || err));
-              } finally {
-                emailLinkSignInPending = false;
-                window.localStorage.removeItem('emailForSignIn');
-                
-                // Preserve app params (room, share) while removing Firebase auth params
+
+            try {
+              const currentUser = auth.currentUser;
+              const credential = EmailAuthProvider.credentialWithLink(email, window.location.href);
+
+              if (currentUser && currentUser.isAnonymous) {
                 try {
-                  const url = new URL(window.location.href);
-                  const authParams = ['apiKey', 'oobCode', 'mode', 'continueUrl', 'lang'];
-                  authParams.forEach(p => url.searchParams.delete(p));
-                  window.history.replaceState(null, null, url.toString());
-                } catch (urlErr) {
-                  console.error('Failed to parse clean URL:', urlErr);
-                  window.history.replaceState(null, null, window.location.origin + window.location.pathname);
+                  await linkWithCredential(currentUser, credential);
+                  await get().backupRoomToCloud();
+                } catch (linkErr) {
+                  if (linkErr.code === 'auth/credential-already-in-use') {
+                    await signInWithEmailLink(auth, email, window.location.href);
+                  } else {
+                    throw linkErr;
+                  }
                 }
+              } else {
+                await signInWithEmailLink(auth, email, window.location.href);
               }
-            };
-            completeEmailSignIn();
-          }
+            } catch (err) {
+              console.error('Email link sign-in failed:', err);
+              await requestAlert({
+                title: 'Sign-In Failed',
+                message: err.message || 'Could not complete email sign-in. The link may have expired or is invalid.',
+                confirmLabel: 'OK',
+              });
+            } finally {
+              emailLinkSignInPending = false;
+              window.localStorage.removeItem('emailForSignIn');
+
+              // Preserve app params (room, share) while removing Firebase auth params
+              try {
+                const url = new URL(window.location.href);
+                const authParams = ['apiKey', 'oobCode', 'mode', 'continueUrl', 'lang'];
+                authParams.forEach(p => url.searchParams.delete(p));
+                window.history.replaceState(null, null, url.toString());
+              } catch (urlErr) {
+                console.error('Failed to parse clean URL:', urlErr);
+                window.history.replaceState(null, null, window.location.origin + window.location.pathname);
+              }
+            }
+          };
+
+          processEmailLink();
         }
 
         return onAuthStateChanged(auth, (firebaseUser) => {
