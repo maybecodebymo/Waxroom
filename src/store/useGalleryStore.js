@@ -746,6 +746,29 @@ export const useGalleryStore = create(
         if (!isFirebaseConfigured || !auth) return null;
 
         let emailLinkSignInPending = false;
+        let unsubscribe = null;
+
+        const setupAuthListener = () => {
+          unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+            if (firebaseUser) {
+              set({
+                user: {
+                  uid: firebaseUser.uid,
+                  displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Anonymous Selector',
+                  email: firebaseUser.email,
+                  isAnonymous: firebaseUser.isAnonymous
+                }
+              });
+              get().restoreRoomFromCloud();
+            } else {
+              if (emailLinkSignInPending) return;
+              set({ user: null });
+              signInAnonymously(auth).catch((err) => {
+                console.error('Anonymous sign-in failed:', err);
+              });
+            }
+          });
+        };
 
         // Check if loading from email sign-in link
         if (isSignInWithEmailLink(auth, window.location.href)) {
@@ -806,8 +829,12 @@ export const useGalleryStore = create(
           };
 
           processEmailLink();
+          setupAuthListener();
         } else {
           // Handle Google redirect sign-in result (PWA-friendly)
+          // Must resolve BEFORE setting up onAuthStateChanged to prevent race
+          // where signInAnonymously creates a new user before the redirect
+          // credential is linked to the original anonymous user.
           getRedirectResult(auth).then((result) => {
             if (result) {
               console.log('Redirect sign-in successful for', result.user?.email);
@@ -832,28 +859,14 @@ export const useGalleryStore = create(
                 confirmLabel: 'OK',
               });
             }
+          }).finally(() => {
+            setupAuthListener();
           });
         }
 
-        return onAuthStateChanged(auth, (firebaseUser) => {
-          if (firebaseUser) {
-            set({
-              user: {
-                uid: firebaseUser.uid,
-                displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Anonymous Selector',
-                email: firebaseUser.email,
-                isAnonymous: firebaseUser.isAnonymous
-              }
-            });
-            get().restoreRoomFromCloud();
-          } else {
-            if (emailLinkSignInPending) return; // Wait for email link flow to complete
-            set({ user: null });
-            signInAnonymously(auth).catch((err) => {
-              console.error('Anonymous sign-in failed:', err);
-            });
-          }
-        });
+        return () => {
+          if (unsubscribe) unsubscribe();
+        };
       },
       updateLivePlaybackState: async (playbackInfo) => {
         set({ livePlayback: playbackInfo });
@@ -898,12 +911,17 @@ export const useGalleryStore = create(
         }
       },
       setSceneControl: (key, value) =>
-        set((state) => ({
-          sceneControls: {
-            ...state.sceneControls,
-            [key]: value,
-          },
-        })),
+        set((state) => {
+          let clamped = value;
+          if (key === 'zoomOut') clamped = Math.max(-8, Math.min(8, value));
+          if (key === 'zoomIn') clamped = Math.max(2.4, Math.min(7, value));
+          return {
+            sceneControls: {
+              ...state.sceneControls,
+              [key]: clamped,
+            },
+          };
+        }),
     }),
     {
       name: 'waxroom-store-v1',

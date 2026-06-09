@@ -153,7 +153,7 @@ function GalleryScene() {
           event.preventDefault();
         }
         // Two-finger pinch on trackpads / touch mobile screens changes the zoomOut factor
-        const change = -d * 6.0;
+        const change = -d * 2.0;
         const currentZoom = useGalleryStore.getState().sceneControls.zoomOut;
         const nextZoom = Math.max(-8, Math.min(8, currentZoom + change));
         setSceneControl('zoomOut', nextZoom);
@@ -200,7 +200,7 @@ function GalleryScene() {
       : null;
 
     const cameraTarget = selectedAlbumId
-      ? (isMobile ? new THREE.Vector3(0, 3.2, 5.2) : new THREE.Vector3(1.2, 0.6, 4.2))
+      ? (isMobile ? new THREE.Vector3(0, 3.2, controls.zoomIn) : new THREE.Vector3(1.2, 0.6, controls.zoomIn))
       : new THREE.Vector3(0, 1.2, gridFitDistance + controls.zoomOut);
 
     const lookAtTarget = selectedAlbumId
