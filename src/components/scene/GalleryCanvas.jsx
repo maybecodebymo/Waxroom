@@ -207,7 +207,7 @@ function GalleryScene() {
       : null;
 
     const cameraTarget = selectedAlbumId
-      ? (isMobile ? new THREE.Vector3(0, 3.2, controls.zoomIn) : new THREE.Vector3(1.2, 0.6, controls.zoomIn))
+      ? (isMobile ? new THREE.Vector3(0, 3.2, 5.2) : new THREE.Vector3(1.2, 0.6, controls.zoomIn))
       : new THREE.Vector3(0, 1.2, gridFitDistance + controls.zoomOut);
 
     const lookAtTarget = selectedAlbumId
