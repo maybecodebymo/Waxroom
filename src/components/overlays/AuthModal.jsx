@@ -13,8 +13,46 @@ import {
 import { useGalleryStore } from '../../store/useGalleryStore';
 import ConfirmDialog from './ConfirmDialog';
 
-const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-  (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches);
+// Detect if the app is running as an installed PWA (Home Screen app).
+// On iOS, navigator.standalone is true. On Android/desktop, the
+// display-mode: standalone media query matches.
+const isStandalonePWA = (() => {
+  if (typeof window === 'undefined') return false;
+  // iOS-specific standalone property (Safari Home Screen apps)
+  if ('standalone' in navigator && navigator.standalone) return true;
+  // Standard media query for installed PWAs (Android, desktop)
+  if (window.matchMedia('(display-mode: standalone)').matches) return true;
+  // TWA / fullscreen PWA on Android
+  if (window.matchMedia('(display-mode: fullscreen)').matches) return true;
+  return false;
+})();
+
+/**
+ * Attempts popup-based auth first, then falls back to redirect.
+ * This handles the tricky matrix of browser/PWA/mobile environments:
+ *  - Regular browser (desktop/mobile): popup works → use it
+ *  - iOS PWA: popup blocked → catch error → fall back to redirect
+ *  - Android PWA: popup may work or fail → same fallback
+ */
+async function popupWithRedirectFallback(popupFn, redirectFn) {
+  try {
+    return await popupFn();
+  } catch (err) {
+    // These error codes mean the popup was blocked or unavailable
+    const popupBlocked =
+      err.code === 'auth/popup-blocked' ||
+      err.code === 'auth/popup-closed-by-user' ||
+      err.code === 'auth/cancelled-popup-request' ||
+      err.code === 'auth/internal-error';
+
+    if (popupBlocked || isStandalonePWA) {
+      // Fall back to redirect flow
+      await redirectFn();
+      return null; // redirect navigates away; no result to return
+    }
+    throw err; // Re-throw non-popup errors (e.g. credential-already-in-use)
+  }
+}
 
 function AuthModal({ onClose }) {
   const [loading, setLoading] = useState(false);
@@ -31,38 +69,41 @@ function AuthModal({ onClose }) {
     const provider = new GoogleAuthProvider();
 
     try {
-      if (isMobile) {
-        // Popups don't work reliably on mobile/PWA — use redirect
-        onClose();
-        const currentUser = auth.currentUser;
-        if (currentUser && currentUser.isAnonymous) {
-          await linkWithRedirect(currentUser, provider);
-        } else {
-          await signInWithRedirect(auth, provider);
-        }
-        return;
-      }
-
       const currentUser = auth.currentUser;
+
       if (currentUser && currentUser.isAnonymous) {
-        try {
-          await linkWithPopup(currentUser, provider);
+        // Link the anonymous account to Google
+        const result = await popupWithRedirectFallback(
+          () => linkWithPopup(currentUser, provider),
+          () => {
+            onClose(); // close modal before redirect navigates away
+            return linkWithRedirect(currentUser, provider);
+          }
+        );
+        if (result) {
+          // Popup succeeded
           await backupRoomToCloud();
           onClose();
-        } catch (linkErr) {
-          if (linkErr.code === 'auth/credential-already-in-use') {
-            setGoogleSwitchPending(true);
-          } else {
-            throw linkErr;
-          }
         }
+        // If result is null, redirect is in progress — nothing more to do
       } else {
-        await signInWithPopup(auth, provider);
-        onClose();
+        // Direct sign-in (no anonymous account to link)
+        const result = await popupWithRedirectFallback(
+          () => signInWithPopup(auth, provider),
+          () => {
+            onClose();
+            return signInWithRedirect(auth, provider);
+          }
+        );
+        if (result) onClose();
       }
     } catch (err) {
-      console.error('Google authentication failed:', err);
-      setError(err.message || 'Google sign-in failed');
+      if (err.code === 'auth/credential-already-in-use') {
+        setGoogleSwitchPending(true);
+      } else {
+        console.error('Google authentication failed:', err);
+        setError(err.message || 'Google sign-in failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -73,9 +114,18 @@ function AuthModal({ onClose }) {
     setLoading(true);
     setError('');
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
-      setGoogleSwitchPending(false);
-      onClose();
+      const provider = new GoogleAuthProvider();
+      const result = await popupWithRedirectFallback(
+        () => signInWithPopup(auth, provider),
+        () => {
+          onClose();
+          return signInWithRedirect(auth, provider);
+        }
+      );
+      if (result) {
+        setGoogleSwitchPending(false);
+        onClose();
+      }
     } catch (err) {
       console.error('Google account switch failed:', err);
       setError(err.message || 'Google account switch failed');
