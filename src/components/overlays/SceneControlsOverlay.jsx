@@ -28,6 +28,7 @@ function SceneControlsOverlay() {
   const publishedDescription = useGalleryStore((state) => state.publishedDescription);
   const unpublishRoom = useGalleryStore((state) => state.unpublishRoom);
   const publishRoom = useGalleryStore((state) => state.publishRoom);
+  const timelineError = useGalleryStore((state) => state.timelineError);
   const myAlbums = useGalleryStore((state) => state.myAlbums);
 
   const user = useGalleryStore((state) => state.user);
@@ -59,6 +60,7 @@ function SceneControlsOverlay() {
   const [description, setDescription] = useState('');
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isLiveActionLoading, setIsLiveActionLoading] = useState(false);
 
   const isAddModalOpen = useGalleryStore((state) => state.isAddModalOpen);
   const isRecommendationsOpen = useGalleryStore((state) => state.isRecommendationsOpen);
@@ -589,14 +591,20 @@ function SceneControlsOverlay() {
                             {/* Toggle Switch */}
                             <button
                               type="button"
+                              disabled={isLiveActionLoading || (!isCurrentlyPublished && myAlbums.length === 0)}
                               onClick={async () => {
-                                if (isCurrentlyPublished) {
-                                  await unpublishRoom();
-                                } else {
-                                  await publishRoom(description.trim());
+                                setIsLiveActionLoading(true);
+                                try {
+                                  if (isCurrentlyPublished) {
+                                    await unpublishRoom();
+                                  } else {
+                                    await publishRoom(description.trim());
+                                  }
+                                } finally {
+                                  setIsLiveActionLoading(false);
                                 }
                               }}
-                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
+                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none disabled:opacity-40 disabled:cursor-not-allowed ${
                                 isCurrentlyPublished ? 'bg-orange-500' : 'bg-zinc-300'
                               }`}
                               aria-label="Toggle Live Status"
@@ -655,6 +663,9 @@ function SceneControlsOverlay() {
                               </button>
                             )}
                           </form>
+                          {timelineError && (
+                            <p className="text-[9px] font-display font-bold uppercase text-red-600 mt-1">{timelineError}</p>
+                          )}
                         </div>
                       )}
                     </div>

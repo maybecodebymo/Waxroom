@@ -97,6 +97,10 @@ function App() {
     };
   }, [initializeAuth]);
 
+  useEffect(() => {
+    localStorage.removeItem('spotify_code_verifier');
+  }, []);
+
   // Subscribe to live room playback if visiting another user's live room
   useEffect(() => {
     if (sharedRoomId && isViewingShared) {

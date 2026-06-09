@@ -433,7 +433,7 @@ export const useGalleryStore = create(
           updatedAt: Date.now(),
         };
 
-        set((state) => ({
+        const applyPublishedState = () => set((state) => ({
           isPublished: true,
           publishedDescription: desc,
           lastPublishedVaultName: vaultName,
@@ -450,6 +450,7 @@ export const useGalleryStore = create(
         if (isFirebaseConfigured && db) {
           try {
             await setDoc(doc(db, 'community_rooms', docId), newRoom);
+            applyPublishedState();
             await get().fetchTimelineRooms();
             await get().backupRoomToCloud();
             return { success: true };
@@ -460,6 +461,7 @@ export const useGalleryStore = create(
           }
         }
 
+        applyPublishedState();
         const localId = `room-${docId}`;
         set((state) => ({
           timelineRooms: [{ id: localId, ...newRoom }, ...state.timelineRooms.filter((r) => r.id !== localId)],
@@ -503,7 +505,7 @@ export const useGalleryStore = create(
         const roomIdFromDoc = docId.startsWith(prefix) ? docId.slice(prefix.length) : get().activeRoomId;
         const isActiveRoom = roomIdFromDoc === get().activeRoomId;
 
-        set((state) => {
+        const applyUnpublishedState = () => set((state) => {
           const updates = {
             timelineRooms: state.timelineRooms.filter((r) => r.id !== docId && r.id !== `room-${docId}`),
             timelineError: null,
@@ -526,7 +528,10 @@ export const useGalleryStore = create(
         if (isFirebaseConfigured && db) {
           try {
             await deleteDoc(doc(db, 'community_rooms', docId));
+            applyUnpublishedState();
             await get().fetchTimelineRooms();
+            await get().backupRoomToCloud();
+            return { success: true };
           } catch (err) {
             console.error('Failed to delete live room from Firestore:', err);
             set({ timelineError: `Go offline failed: ${err.message}` });
@@ -534,6 +539,7 @@ export const useGalleryStore = create(
           }
         }
 
+        applyUnpublishedState();
         await get().backupRoomToCloud();
         return { success: true };
       },
