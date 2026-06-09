@@ -2,44 +2,6 @@ import { useEffect, useRef } from 'react';
 import { useGalleryStore } from '../../store/useGalleryStore';
 import { fetchLastFmNowPlaying } from '../../utils/lastFmService';
 
-const fetchSpotifyCurrentlyPlaying = async (token) => {
-  try {
-    const response = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (response.status === 204) {
-      return null;
-    }
-
-    if (response.status === 401) {
-      // Token expired, clear token in store
-      useGalleryStore.setState({ spotifyAccessToken: '', spotifyTokenExpiry: 0 });
-      return null;
-    }
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const data = await response.json();
-    if (!data || !data.item) return null;
-
-    return {
-      trackTitle: data.item.name,
-      artistName: data.item.artists?.map(a => a.name).join(', ') || 'Unknown Artist',
-      albumTitle: data.item.album?.name || 'Unknown Album',
-      albumArtUrl: data.item.album?.images?.[0]?.url || '/placeholder-album.png',
-      isPlaying: data.is_playing
-    };
-  } catch (err) {
-    console.warn('Failed to fetch Spotify player status:', err);
-    return null;
-  }
-};
-
 const hydrateTrackFromItunes = async (artistName, trackTitle, albumTitle, fallbackArt) => {
   let albumArtUrl = fallbackArt || '/placeholder-album.png';
   let previewUrl = '';
@@ -95,9 +57,6 @@ const hydrateTrackFromItunes = async (artistName, trackTitle, albumTitle, fallba
 
 function LiveListeningManager() {
   const lastFmUsername = useGalleryStore((state) => state.lastFmUsername);
-  const spotifyAccessToken = useGalleryStore((state) => state.spotifyAccessToken);
-  const spotifyTokenExpiry = useGalleryStore((state) => state.spotifyTokenExpiry);
-
   const updateLivePlaybackState = useGalleryStore((state) => state.updateLivePlaybackState);
   const myAlbums = useGalleryStore((state) => state.myAlbums);
   const crateInbox = useGalleryStore((state) => state.crateInbox);
@@ -111,21 +70,8 @@ function LiveListeningManager() {
 
       try {
         let activeTrackData = null;
-        let source = '';
 
-        // 1. Check Spotify first if access token is configured
-        if (spotifyAccessToken && spotifyTokenExpiry > Date.now()) {
-          const spotifyPlaying = await fetchSpotifyCurrentlyPlaying(spotifyAccessToken);
-          if (spotifyPlaying && spotifyPlaying.isPlaying) {
-            activeTrackData = spotifyPlaying;
-            source = 'spotify';
-          }
-        }
-
-
-
-        // 3. Check Last.fm third as a fallback
-        if (!activeTrackData && lastFmUsername) {
+        if (lastFmUsername) {
           const lfmPlaying = await fetchLastFmNowPlaying(lastFmUsername);
           if (lfmPlaying) {
             activeTrackData = {
@@ -136,7 +82,6 @@ function LiveListeningManager() {
               isPlaying: true,
               hydrated: lfmPlaying
             };
-            source = 'lastfm';
           }
         }
 
@@ -167,10 +112,8 @@ function LiveListeningManager() {
             };
             lastHydratedTrack.current = nowPlaying;
 
-            // Add to history
             useGalleryStore.getState().addTrackToHistory(nowPlaying);
 
-            // Crate Inbox Auto-collection check
             const albumCleanName = (nowPlaying.albumTitle || '').toLowerCase().trim();
             const isCollected = myAlbums.some(
               (a) => (a.album_title || '').toLowerCase().trim() === albumCleanName
@@ -186,13 +129,7 @@ function LiveListeningManager() {
                 album_title: nowPlaying.albumTitle,
                 genre: nowPlaying.genre || 'Alt',
                 rating: 8,
-                description: `Captured while listening on ${
-                  source === 'spotify'
-                    ? 'Spotify'
-                    : source === 'applemusic'
-                    ? 'Apple Music'
-                    : 'Last.fm'
-                }!`,
+                description: 'Captured while listening on Last.fm!',
                 texture_url: nowPlaying.albumArtUrl,
                 tracklist: nowPlaying.tracklist.length > 0 ? nowPlaying.tracklist : [
                   { title: nowPlaying.trackTitle, category: 'hit' }
@@ -205,7 +142,6 @@ function LiveListeningManager() {
               }));
               
               useGalleryStore.getState().backupRoomToCloud();
-              console.log('Auto-collected track into Crate:', nowPlaying.trackTitle);
             }
           }
 
@@ -222,13 +158,10 @@ function LiveListeningManager() {
 
     pollNowPlaying();
 
-    // Poll every 4 seconds
     const interval = setInterval(pollNowPlaying, 4000);
     return () => clearInterval(interval);
   }, [
     lastFmUsername,
-    spotifyAccessToken,
-    spotifyTokenExpiry,
     myAlbums,
     crateInbox,
     updateLivePlaybackState

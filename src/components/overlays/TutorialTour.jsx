@@ -35,14 +35,14 @@ const tourSteps = [
   {
     title: '5. Crate Inbox',
     icon: Disc,
-    description: "Manage your incoming vinyls! Tap the 'Crate' button to check your Inbox. The Waxroom automatically captures any track you listen to on Spotify or Last.fm. Simply click to add them permanently to your room.",
+    description: "Manage your incoming vinyls! Tap the 'Crate' button to check your Inbox. The Waxroom automatically captures any track you listen to on Last.fm. Simply click to add them permanently to your room.",
     cardPosition: 'top-24 right-4 md:right-8 w-[min(90vw,380px)]',
     targetId: 'crate-nav-btn',
   },
   {
     title: '6. Tune Settings',
     icon: SlidersHorizontal,
-    description: "Take total control of your room! Use the 'Tune' panel to configure your Selector Profile, manage multiple rooms, or link your Spotify and Last.fm accounts for real-time tracking.",
+    description: "Take total control of your room! Use the 'Tune' panel to configure your Selector Profile, manage multiple rooms, or link your Last.fm account for real-time tracking.",
     cardPosition: 'top-24 right-4 md:right-8 w-[min(90vw,380px)]',
     targetId: 'tune-nav-btn',
   },

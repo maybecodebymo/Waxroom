@@ -17,7 +17,6 @@ function TimelineFeed() {
   const timelineError = useGalleryStore((state) => state.timelineError);
   const isPublished = useGalleryStore((state) => state.isPublished);
   const publishedDescription = useGalleryStore((state) => state.publishedDescription);
-  const lastPublishedVaultName = useGalleryStore((state) => state.lastPublishedVaultName);
   const unpublishRoom = useGalleryStore((state) => state.unpublishRoom);
   const user = useGalleryStore((state) => state.user);
 
@@ -28,12 +27,8 @@ function TimelineFeed() {
 
   const [description, setDescription] = useState('');
 
-  const activeRoom = timelineRooms.find(r => 
-    r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim() ||
-    r.ownerName?.toLowerCase().trim() === lastPublishedVaultName?.toLowerCase().trim()
-  );
-  const isCurrentlyPublished = isPublished || !!activeRoom;
-  const displayDescription = publishedDescription || activeRoom?.description || '';
+  const isCurrentlyPublished = isPublished;
+  const displayDescription = publishedDescription;
 
   useEffect(() => {
     setDescription(displayDescription);
@@ -92,11 +87,11 @@ function TimelineFeed() {
               
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   if (isCurrentlyPublished) {
-                    unpublishRoom(activeRoom?.id);
+                    await unpublishRoom();
                   } else {
-                    publishRoom(description.trim());
+                    await publishRoom(description.trim());
                   }
                 }}
                 className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
@@ -143,7 +138,7 @@ function TimelineFeed() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => unpublishRoom(activeRoom?.id)}
+                      onClick={() => unpublishRoom()}
                       className="flex-1 rounded-xl text-red-600 py-2 px-3 text-xs font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer text-center"
                     >
                       Go Offline

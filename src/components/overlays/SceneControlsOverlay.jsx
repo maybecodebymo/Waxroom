@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Link, SlidersHorizontal, Globe, X, Cloud, Send, LogIn, LogOut, UserCheck, Disc, Plus, Trash2, Music } from 'lucide-react';
+import { Link, SlidersHorizontal, Globe, X, Cloud, Send, LogIn, UserCheck, Disc, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { compressToEncodedURIComponent } from 'lz-string';
 import { useGalleryStore } from '../../store/useGalleryStore';
@@ -8,43 +8,12 @@ import { isFirebaseConfigured, auth } from '../../utils/firebase';
 import { signOut } from 'firebase/auth';
 import AuthModal from './AuthModal';
 
-// PKCE authorization helper functions
-const generateRandomString = (length) => {
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
-  const values = crypto.getRandomValues(new Uint8Array(length));
-  return values.reduce((acc, x) => acc + possible[x % possible.length], '');
-};
-
-const sha256 = async (plain) => {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(plain);
-  return window.crypto.subtle.digest('SHA-256', data);
-};
-
-const base64urlencode = (buffer) => {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
-};
-
-const generateCodeChallenge = async (codeVerifier) => {
-  const hashed = await sha256(codeVerifier);
-  return base64urlencode(hashed);
-};
-
 function SceneControlsOverlay() {
   const canEditAlbums = useGalleryStore((state) => state.canEditAlbums);
   const vaultName = useGalleryStore((state) => state.vaultName);
   const setVaultName = useGalleryStore((state) => state.setVaultName);
   const isFeedOpen = useGalleryStore((state) => state.isFeedOpen);
   const setFeedOpen = useGalleryStore((state) => state.setFeedOpen);
-  const timelineRooms = useGalleryStore((state) => state.timelineRooms);
   const [isOpen, setIsOpen] = useState(false);
   const selectedAlbumId = useGalleryStore((state) => state.selectedAlbumId);
   const replaceRoom = useGalleryStore((state) => state.replaceRoom);
@@ -57,7 +26,6 @@ function SceneControlsOverlay() {
   const backupRoomToCloud = useGalleryStore((state) => state.backupRoomToCloud);
   const isPublished = useGalleryStore((state) => state.isPublished);
   const publishedDescription = useGalleryStore((state) => state.publishedDescription);
-  const lastPublishedVaultName = useGalleryStore((state) => state.lastPublishedVaultName);
   const unpublishRoom = useGalleryStore((state) => state.unpublishRoom);
   const publishRoom = useGalleryStore((state) => state.publishRoom);
   const myAlbums = useGalleryStore((state) => state.myAlbums);
@@ -74,10 +42,6 @@ function SceneControlsOverlay() {
   const createNewRoom = useGalleryStore((state) => state.createNewRoom);
   const switchRoom = useGalleryStore((state) => state.switchRoom);
   const deleteRoom = useGalleryStore((state) => state.deleteRoom);
-
-  // Spotify store hooks
-  const spotifyAccessToken = useGalleryStore((state) => state.spotifyAccessToken);
-  const populateRoomFromSpotify = useGalleryStore((state) => state.populateRoomFromSpotify);
 
   // History state hooks
   const isHistoryOpen = useGalleryStore((state) => state.isHistoryOpen);
@@ -101,8 +65,6 @@ function SceneControlsOverlay() {
 
   // Local inputs
   const [newRoomName, setNewRoomName] = useState('');
-  const [isSpotifyImporting, setIsSpotifyImporting] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   useEffect(() => {
     if (lastFmUsername) {
@@ -139,12 +101,8 @@ function SceneControlsOverlay() {
   }, [isOpen]);
 
   const showExpanded = !isMobile || isExpanded || (!hasCompletedTour && !isViewingShared && tourStepIndex >= 3);
-  const activeRoom = timelineRooms.find(r => 
-    r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim() ||
-    r.ownerName?.toLowerCase().trim() === lastPublishedVaultName?.toLowerCase().trim()
-  );
-  const isCurrentlyPublished = isPublished || !!activeRoom;
-  const displayDescription = publishedDescription || activeRoom?.description || '';
+  const isCurrentlyPublished = isPublished;
+  const displayDescription = publishedDescription;
 
   useEffect(() => {
     setDescription(displayDescription);
@@ -568,122 +526,6 @@ function SceneControlsOverlay() {
                         </div>
                       </div>
 
-                      {/* Streaming Connectors Section */}
-                      <div className="flex flex-col gap-2 rounded-xl border border-white/40 bg-white/40 p-3 shadow-[0_4px_12px_rgba(0,0,0,0.02)] text-zinc-900">
-                        <span className="flex items-center gap-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
-                          <Music size={12} className="text-orange-500" />
-                          Streaming Services
-                        </span>
-
-                        {/* Spotify Auth section */}
-                        <div className="space-y-2 border-b border-white/20 pb-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[9.5px] font-display font-bold uppercase tracking-wide text-zinc-800">
-                              Spotify Link
-                            </span>
-                            {spotifyAccessToken ? (
-                              <span className="text-[8.5px] font-display font-bold uppercase tracking-widest text-emerald-600">
-                                Connected
-                              </span>
-                            ) : (
-                              <span className="text-[8.5px] font-display font-bold uppercase tracking-widest text-zinc-400">
-                                Disconnected
-                              </span>
-                            )}
-                          </div>
-
-                          {spotifyAccessToken ? (
-                            <div className="space-y-1.5">
-                              <p className="text-[9px] text-zinc-500 font-body leading-tight">
-                                Stream active listening scrobbles directly. You can also import:
-                              </p>
-                              <div className="flex gap-2">
-                                <button
-                                  type="button"
-                                  disabled={isSpotifyImporting}
-                                  onClick={async () => {
-                                    setIsSpotifyImporting(true);
-                                    const res = await populateRoomFromSpotify('tracks');
-                                    setIsSpotifyImporting(false);
-                                    if (res.success) {
-                                      alert(`Imported ${res.count} top tracks into your room shelf!`);
-                                    } else {
-                                      alert(`Import failed: ${res.error}`);
-                                    }
-                                  }}
-                                  className="flex-1 rounded-lg text-zinc-800 py-1 px-2 text-[8.5px] font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer text-center"
-                                >
-                                  Top Tracks
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={isSpotifyImporting}
-                                  onClick={async () => {
-                                    setIsSpotifyImporting(true);
-                                    const res = await populateRoomFromSpotify('albums');
-                                    setIsSpotifyImporting(false);
-                                    if (res.success) {
-                                      alert(`Imported ${res.count} saved albums into your room shelf!`);
-                                    } else {
-                                      alert(`Import failed: ${res.error}`);
-                                    }
-                                  }}
-                                  className="flex-1 rounded-lg text-zinc-800 py-1 px-2 text-[8.5px] font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer text-center"
-                                >
-                                  Saved Albums
-                                </button>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  useGalleryStore.setState({ spotifyAccessToken: '', spotifyTokenExpiry: 0 });
-                                }}
-                                className="w-full text-center text-[8px] font-display font-bold uppercase tracking-wider text-red-500 hover:text-red-700 cursor-pointer pt-0.5"
-                              >
-                                Disconnect Spotify
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  try {
-                                    const clientId = 'da12502621fc4df59451be213b1f51ee';
-                                    const redirectUri = window.location.origin + window.location.pathname;
-                                    const scopes = 'user-read-currently-playing user-top-read user-library-read';
-                                    
-                                    const verifier = generateRandomString(64);
-                                    localStorage.setItem('spotify_code_verifier', verifier);
-                                    
-                                    const challenge = await generateCodeChallenge(verifier);
-                                    
-                                    const authUrl = new URL("https://accounts.spotify.com/authorize");
-                                    authUrl.search = new URLSearchParams({
-                                      response_type: 'code',
-                                      client_id: clientId,
-                                      scope: scopes,
-                                      redirect_uri: redirectUri,
-                                      code_challenge_method: 'S256',
-                                      code_challenge: challenge,
-                                      show_dialog: 'true'
-                                    }).toString();
-                                    
-                                    window.location.href = authUrl.toString();
-                                  } catch (err) {
-                                    console.error('Failed to initiate Spotify login:', err);
-                                    alert('Failed to connect to Spotify: ' + err.message);
-                                  }
-                                }}
-                                className="w-full flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn text-zinc-850 cursor-pointer"
-                              >
-                                Connect Spotify
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
                       <form 
                         onSubmit={async (e) => {
                           e.preventDefault();
@@ -747,11 +589,11 @@ function SceneControlsOverlay() {
                             {/* Toggle Switch */}
                             <button
                               type="button"
-                              onClick={() => {
+                              onClick={async () => {
                                 if (isCurrentlyPublished) {
-                                  unpublishRoom(activeRoom?.id);
+                                  await unpublishRoom();
                                 } else {
-                                  publishRoom(description.trim());
+                                  await publishRoom(description.trim());
                                 }
                               }}
                               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
@@ -797,7 +639,7 @@ function SceneControlsOverlay() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => unpublishRoom(activeRoom?.id)}
+                                  onClick={() => unpublishRoom()}
                                   className="flex-1 rounded-lg text-red-600 py-1.5 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer text-center"
                                 >
                                   Go Offline
