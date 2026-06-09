@@ -7,34 +7,30 @@ const outDir = path.resolve(__dirname, '../public/pwa-icons');
 
 fs.mkdirSync(outDir, { recursive: true });
 
-const sizes = [192, 512, 180];
-const bgColor = '#f5f5f3';
+const sizes = [180, 192, 512];
+const bgColor = { r: 245, g: 245, b: 243, alpha: 1 };
 
 async function generate() {
   for (const size of sizes) {
-    // Regular icon: logo centered on background
+    const logoSize = Math.round(size * 0.85);
+    const pad = Math.round((size - logoSize) / 2);
+
+    // Regular icon
     await sharp(src)
-      .resize(Math.round(size * 0.85), Math.round(size * 0.85), { fit: 'contain' })
-      .extend({
-        top: Math.round(size * 0.075),
-        bottom: Math.round(size * 0.075),
-        left: Math.round(size * 0.075),
-        right: Math.round(size * 0.075),
-        background: bgColor,
-      })
+      .resize(logoSize, logoSize, { fit: 'contain', background: bgColor })
+      .flatten({ background: bgColor })
+      .extend({ top: pad, bottom: pad, left: pad, right: pad, background: bgColor })
       .png()
       .toFile(path.join(outDir, `icon-${size}x${size}.png`));
 
-    // Maskable icon: logo fills safe area (80% inner)
+    // Maskable icon (logo fills 80% inner safe zone)
+    const maskSize = Math.round(size * 0.8);
+    const maskPad = Math.round((size - maskSize) / 2);
+
     await sharp(src)
-      .resize(Math.round(size * 0.8), Math.round(size * 0.8), { fit: 'contain' })
-      .extend({
-        top: Math.round(size * 0.1),
-        bottom: Math.round(size * 0.1),
-        left: Math.round(size * 0.1),
-        right: Math.round(size * 0.1),
-        background: bgColor,
-      })
+      .resize(maskSize, maskSize, { fit: 'contain', background: bgColor })
+      .flatten({ background: bgColor })
+      .extend({ top: maskPad, bottom: maskPad, left: maskPad, right: maskPad, background: bgColor })
       .png()
       .toFile(path.join(outDir, `icon-${size}x${size}-maskable.png`));
 

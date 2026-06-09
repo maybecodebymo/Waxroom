@@ -6,10 +6,15 @@ import {
   GoogleAuthProvider, 
   signInWithPopup, 
   linkWithPopup,
+  signInWithRedirect,
+  linkWithRedirect,
   sendSignInLinkToEmail
 } from 'firebase/auth';
 import { useGalleryStore } from '../../store/useGalleryStore';
 import ConfirmDialog from './ConfirmDialog';
+
+const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+  (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches);
 
 function AuthModal({ onClose }) {
   const [loading, setLoading] = useState(false);
@@ -26,10 +31,21 @@ function AuthModal({ onClose }) {
     const provider = new GoogleAuthProvider();
 
     try {
+      if (isMobile) {
+        // Popups don't work reliably on mobile/PWA — use redirect
+        onClose();
+        const currentUser = auth.currentUser;
+        if (currentUser && currentUser.isAnonymous) {
+          await linkWithRedirect(currentUser, provider);
+        } else {
+          await signInWithRedirect(auth, provider);
+        }
+        return;
+      }
+
       const currentUser = auth.currentUser;
       if (currentUser && currentUser.isAnonymous) {
         try {
-          // Link anonymous session with Google atomically
           await linkWithPopup(currentUser, provider);
           await backupRoomToCloud();
           onClose();

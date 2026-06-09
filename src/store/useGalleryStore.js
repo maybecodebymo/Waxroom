@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { db, isFirebaseConfigured, auth } from '../utils/firebase';
-import { requestAlert, requestPrompt } from '../utils/dialogService';
+import { requestAlert, requestPrompt, requestConfirmation } from '../utils/dialogService';
 import { collection, addDoc, getDocs, getDoc, setDoc, doc, query, orderBy, limit, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { 
   onAuthStateChanged, 
@@ -10,6 +10,9 @@ import {
   signInWithEmailLink, 
   EmailAuthProvider, 
   linkWithCredential,
+  getRedirectResult,
+  GoogleAuthProvider,
+  signInWithRedirect,
 } from 'firebase/auth';
 
 const buildGenres = (albums) => ['All', ...new Set(albums.map((album) => album.genre))];
@@ -759,6 +762,8 @@ export const useGalleryStore = create(
               get().restoreRoomFromCloud();
             } else {
               if (emailLinkSignInPending) return;
+              // Wait for redirect processing before creating anonymous user
+              if (!processedRedirect) return;
               set({ user: null });
               signInAnonymously(auth).catch((err) => {
                 console.error('Anonymous sign-in failed:', err);
@@ -827,6 +832,43 @@ export const useGalleryStore = create(
 
           processEmailLink();
         }
+
+        // Handle Google redirect sign-in result (used on mobile/PWA).
+        // Must process before onAuthStateChanged fires signInAnonymously
+        // to prevent a race where a new anonymous user is created before the
+        // redirect credential is linked to the original anonymous user.
+        let processedRedirect = false;
+        getRedirectResult(auth).then((result) => {
+          if (result) {
+            console.log('Redirect sign-in successful for', result.user?.email);
+            get().backupRoomToCloud();
+          }
+        }).catch(async (err) => {
+          if (err.code === 'auth/credential-already-in-use') {
+            const confirmed = await requestConfirmation({
+              title: 'Switch Profile',
+              message: 'This Google account is already linked to another Waxroom. Switching will load that profile and replace local guest changes.',
+              confirmLabel: 'Switch',
+            });
+            if (confirmed) {
+              await signInWithRedirect(auth, new GoogleAuthProvider());
+            }
+          } else {
+            console.error('Redirect sign-in error:', err);
+            await requestAlert({
+              title: 'Sign-In Failed',
+              message: err.message || 'Could not complete Google sign-in.',
+              confirmLabel: 'OK',
+            });
+          }
+        }).finally(() => {
+          processedRedirect = true;
+          if (!auth.currentUser && !emailLinkSignInPending) {
+            signInAnonymously(auth).catch((err) => {
+              console.error('Anonymous sign-in failed:', err);
+            });
+          }
+        });
 
         setupAuthListener();
 
