@@ -4,17 +4,19 @@ import { X, LockKeyhole, Mail } from 'lucide-react';
 import { auth, isFirebaseConfigured } from '../../utils/firebase';
 import { 
   GoogleAuthProvider, 
-  signInWithRedirect,
-  linkWithRedirect,
+  signInWithPopup, 
+  linkWithPopup,
   sendSignInLinkToEmail
 } from 'firebase/auth';
 import { useGalleryStore } from '../../store/useGalleryStore';
+import ConfirmDialog from './ConfirmDialog';
 
 function AuthModal({ onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
   const [emailSent, setEmailSent] = useState(false);
+  const [googleSwitchPending, setGoogleSwitchPending] = useState(false);
   const backupRoomToCloud = useGalleryStore((state) => state.backupRoomToCloud);
 
   const handleGoogleAuth = async () => {
@@ -24,16 +26,44 @@ function AuthModal({ onClose }) {
     const provider = new GoogleAuthProvider();
 
     try {
-      onClose(); // Close modal before redirect (app reloads after redirect anyway)
       const currentUser = auth.currentUser;
       if (currentUser && currentUser.isAnonymous) {
-        await linkWithRedirect(currentUser, provider);
+        try {
+          // Link anonymous session with Google atomically
+          await linkWithPopup(currentUser, provider);
+          await backupRoomToCloud();
+          onClose();
+        } catch (linkErr) {
+          if (linkErr.code === 'auth/credential-already-in-use') {
+            setGoogleSwitchPending(true);
+          } else {
+            throw linkErr;
+          }
+        }
       } else {
-        await signInWithRedirect(auth, provider);
+        await signInWithPopup(auth, provider);
+        onClose();
       }
     } catch (err) {
       console.error('Google authentication failed:', err);
       setError(err.message || 'Google sign-in failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmGoogleSwitch = async () => {
+    if (!isFirebaseConfigured || !auth) return;
+    setLoading(true);
+    setError('');
+    try {
+      await signInWithPopup(auth, new GoogleAuthProvider());
+      setGoogleSwitchPending(false);
+      onClose();
+    } catch (err) {
+      console.error('Google account switch failed:', err);
+      setError(err.message || 'Google account switch failed');
+    } finally {
       setLoading(false);
     }
   };
@@ -79,7 +109,7 @@ function AuthModal({ onClose }) {
         initial={{ opacity: 0, scale: 0.95, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 12 }}
-        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-[380px] overflow-hidden rounded-[28px] border border-zinc-200 bg-[#f5f5f3] p-6 text-zinc-950 shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
       >
         <div className="flex items-center justify-between mb-5 border-b border-zinc-200 pb-3">
@@ -182,7 +212,15 @@ function AuthModal({ onClose }) {
             Secure connection powered by Firebase Auth
           </p>
         </div>
-        
+        {googleSwitchPending && (
+          <ConfirmDialog
+            title="Switch Profile"
+            message="This Google account is already linked to another Waxroom. Switching will load that profile and replace local guest changes."
+            confirmLabel="Switch"
+            onCancel={() => setGoogleSwitchPending(false)}
+            onConfirm={confirmGoogleSwitch}
+          />
+        )}
       </motion.div>
     </motion.div>
   );
