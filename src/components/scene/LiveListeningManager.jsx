@@ -66,8 +66,6 @@ function LiveListeningManager() {
 
   useEffect(() => {
     const pollNowPlaying = async () => {
-      if (!document.hasFocus()) return;
-
       try {
         let activeTrackData = null;
 

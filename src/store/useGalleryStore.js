@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { db, isFirebaseConfigured, auth } from '../utils/firebase';
+import { requestConfirmation } from '../utils/dialogService';
 import { collection, addDoc, getDocs, getDoc, setDoc, doc, query, orderBy, limit, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { 
   onAuthStateChanged, 
@@ -61,6 +62,7 @@ export const useGalleryStore = create(
       lastFmUsername: '',
       livePlayback: null,
       activeRoomPlayback: null,
+      sharedRoomDocId: null,
       selectedAlbumId: null,
       activeGenre: 'All',
       isAddModalOpen: false,
@@ -262,6 +264,55 @@ export const useGalleryStore = create(
 
         get().syncLiveRoomToFirestore();
       },
+      addAlbumToMyRoom: (albumObject) => {
+        if (!albumObject || !get().canEditAlbums) return false;
+
+        const normalizedTitle = (albumObject.album_title || '').toLowerCase().trim();
+        const normalizedArtist = (albumObject.artist || '').toLowerCase().trim();
+        if (!normalizedTitle || !normalizedArtist) return false;
+
+        let addedAlbum = null;
+        set((state) => {
+          const alreadyCollected = state.myAlbums.some(
+            (album) =>
+              (album.album_title || '').toLowerCase().trim() === normalizedTitle &&
+              (album.artist || '').toLowerCase().trim() === normalizedArtist
+          );
+
+          if (alreadyCollected) return state;
+
+          addedAlbum = {
+            ...albumObject,
+            id: `a-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+            description: albumObject.description || 'Added from another Waxroom.',
+          };
+          const myAlbums = [...state.myAlbums, addedAlbum];
+          const rooms = state.rooms.map((room) => (
+            room.id === state.activeRoomId
+              ? { ...room, albums: myAlbums, name: state.vaultName, description: state.publishedDescription, isPublished: state.isPublished }
+              : room
+          ));
+
+          const updates = {
+            myAlbums,
+            rooms,
+          };
+
+          if (!state.isViewingShared) {
+            updates.albums = myAlbums;
+            updates.genres = buildGenres(myAlbums);
+            updates.selectedAlbumId = addedAlbum.id;
+            updates.activeGenre = 'All';
+          }
+
+          return updates;
+        });
+
+        if (!addedAlbum) return false;
+        get().syncLiveRoomToFirestore();
+        get().backupRoomToCloud();
+        return true;
+      },
       updateAlbum: (albumId, albumPatch) => {
         if (!get().canEditAlbums || get().isViewingShared) return;
 
@@ -294,15 +345,21 @@ export const useGalleryStore = create(
       },
       replaceRoom: (newAlbums) => {
         if (!get().canEditAlbums || get().isViewingShared) return;
-        set({
+        set((state) => ({
           myAlbums: newAlbums,
           albums: newAlbums,
           genres: buildGenres(newAlbums),
           selectedAlbumId: null,
           activeGenre: 'All',
-        });
+          rooms: state.rooms.map((room) => (
+            room.id === state.activeRoomId
+              ? { ...room, albums: newAlbums, name: state.vaultName, description: state.publishedDescription, isPublished: state.isPublished }
+              : room
+          )),
+        }));
 
         get().syncLiveRoomToFirestore();
+        get().backupRoomToCloud();
       },
       addToShelfFromCrate: (albumId) => {
         if (!get().canEditAlbums || get().isViewingShared) return;
@@ -335,7 +392,7 @@ export const useGalleryStore = create(
         set({ crateInbox: [] });
         get().backupRoomToCloud();
       },
-      loadSharedRoom: (ownerName, sharedAlbums) => {
+      loadSharedRoom: (ownerName, sharedAlbums, roomDocId = null, activePlayback = null) => {
         set({
           sharedOwnerName: ownerName,
           albums: sharedAlbums,
@@ -343,6 +400,8 @@ export const useGalleryStore = create(
           selectedAlbumId: null,
           activeGenre: 'All',
           isViewingShared: true,
+          sharedRoomDocId: roomDocId,
+          activeRoomPlayback: activePlayback,
         });
       },
       closeSharedRoom: () => {
@@ -354,6 +413,7 @@ export const useGalleryStore = create(
           selectedAlbumId: null,
           activeGenre: 'All',
           isViewingShared: false,
+          sharedRoomDocId: null,
           activeRoomPlayback: null,
         });
       },
@@ -394,7 +454,7 @@ export const useGalleryStore = create(
           }
           if (docSnap && docSnap.exists()) {
             const data = docSnap.data();
-            get().loadSharedRoom(data.ownerName, data.albums);
+            get().loadSharedRoom(data.ownerName, data.albums, type === 'live' ? docSnap.id : null, data.activePlayback || null);
             
             // Subscriptions to live playback if available
             if (type === 'live') {
@@ -601,6 +661,7 @@ export const useGalleryStore = create(
             activeRoomId: get().activeRoomId,
             albums: get().myAlbums,
             crateInbox: get().crateInbox || [],
+            lastFmUsername: get().lastFmUsername || '',
             vaultName: get().vaultName || user.displayName,
             updatedAt: Date.now(),
           });
@@ -650,6 +711,7 @@ export const useGalleryStore = create(
             myAlbums: activeRoom.albums || [],
             albums: activeRoom.albums || [],
             crateInbox: data.crateInbox || [],
+            lastFmUsername: data.lastFmUsername || get().lastFmUsername || '',
             genres: buildGenres(activeRoom.albums || []),
             vaultName: activeRoom.name || data.vaultName || get().vaultName || user.displayName,
             publishedDescription: activeRoom.description || '',
@@ -664,7 +726,10 @@ export const useGalleryStore = create(
         }
       },
       setUser: (user) => set({ user }),
-      setLastFmUsername: (name) => set({ lastFmUsername: name }),
+      setLastFmUsername: (name) => {
+        set({ lastFmUsername: name });
+        get().backupRoomToCloud();
+      },
       initializeAuth: () => {
         if (!isFirebaseConfigured || !auth) return null;
 
@@ -689,9 +754,11 @@ export const useGalleryStore = create(
                     await get().backupRoomToCloud();
                   } catch (linkErr) {
                     if (linkErr.code === 'auth/credential-already-in-use') {
-                      const confirmMerge = window.confirm(
-                        "This email account is already linked to another Waxroom. Signing in will switch to that room and discard your current local changes. Do you want to continue?"
-                      );
+                      const confirmMerge = await requestConfirmation({
+                        title: 'Switch Profile',
+                        message: 'This email account is already linked to another Waxroom. Switching will load that profile and replace local guest changes.',
+                        confirmLabel: 'Switch',
+                      });
                       if (confirmMerge) {
                         await signInWithEmailLink(auth, email, window.location.href);
                       }
@@ -810,6 +877,7 @@ export const useGalleryStore = create(
         publishedDescription: state.publishedDescription,
         lastPublishedVaultName: state.lastPublishedVaultName,
         lastFmUsername: state.lastFmUsername,
+        sharedRoomDocId: state.sharedRoomDocId,
         rooms: state.rooms,
         activeRoomId: state.activeRoomId,
       }),
@@ -861,6 +929,7 @@ export const useGalleryStore = create(
           publishedDescription: rooms.find(r => r.id === activeRoomId)?.description ?? (persistedState?.publishedDescription ?? ''),
           lastPublishedVaultName: persistedState?.lastPublishedVaultName ?? '',
           lastFmUsername: persistedState?.lastFmUsername ?? '',
+          sharedRoomDocId: null,
           rooms,
           activeRoomId,
         };

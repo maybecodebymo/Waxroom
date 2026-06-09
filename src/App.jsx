@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { decompressFromEncodedURIComponent } from 'lz-string';
 import GalleryCanvas from './components/scene/GalleryCanvas';
 import AlbumDetailOverlay from './components/overlays/AlbumDetailOverlay';
@@ -13,6 +13,7 @@ import TimelineFeed from './components/overlays/TimelineFeed';
 import LiveListeningManager from './components/scene/LiveListeningManager';
 import NowPlayingPanel from './components/overlays/NowPlayingPanel';
 import CrateHistoryPanel from './components/overlays/CrateHistoryPanel';
+import ConfirmDialog from './components/overlays/ConfirmDialog';
 import { useGalleryStore } from './store/useGalleryStore';
 
 const fadeIn = {
@@ -34,7 +35,7 @@ const formatRoomName = (name) => {
 };
 
 function App() {
-  const [sharedRoomId, setSharedRoomId] = useState(null);
+  const [confirmRequest, setConfirmRequest] = useState(null);
   const isAddModalOpen = useGalleryStore((state) => state.isAddModalOpen);
   const canEditAlbums = useGalleryStore((state) => state.canEditAlbums);
   const setAddModalOpen = useGalleryStore((state) => state.setAddModalOpen);
@@ -53,6 +54,7 @@ function App() {
   const setRecommendationsOpen = useGalleryStore((state) => state.setRecommendationsOpen);
   const isHistoryOpen = useGalleryStore((state) => state.isHistoryOpen);
   const setHistoryOpen = useGalleryStore((state) => state.setHistoryOpen);
+  const sharedRoomDocId = useGalleryStore((state) => state.sharedRoomDocId);
   const fetchRoomFromDb = useGalleryStore((state) => state.fetchRoomFromDb);
   const initializeAuth = useGalleryStore((state) => state.initializeAuth);
   const subscribeToActiveRoomPlayback = useGalleryStore((state) => state.subscribeToActiveRoomPlayback);
@@ -101,13 +103,21 @@ function App() {
     localStorage.removeItem('spotify_code_verifier');
   }, []);
 
+  useEffect(() => {
+    const handleConfirmRequest = (event) => {
+      setConfirmRequest(event.detail);
+    };
+    window.addEventListener('waxroom:confirm', handleConfirmRequest);
+    return () => window.removeEventListener('waxroom:confirm', handleConfirmRequest);
+  }, []);
+
   // Subscribe to live room playback if visiting another user's live room
   useEffect(() => {
-    if (sharedRoomId && isViewingShared) {
-      const unsubscribe = subscribeToActiveRoomPlayback(sharedRoomId);
+    if (sharedRoomDocId && isViewingShared) {
+      const unsubscribe = subscribeToActiveRoomPlayback(sharedRoomDocId);
       return () => unsubscribe?.();
     }
-  }, [sharedRoomId, isViewingShared, subscribeToActiveRoomPlayback]);
+  }, [sharedRoomDocId, isViewingShared, subscribeToActiveRoomPlayback]);
 
   useEffect(() => {
     if (!canEditAlbums && isAddModalOpen) {
@@ -185,7 +195,6 @@ function App() {
       // Clean the URL bar without reloading
       window.history.replaceState({}, '', window.location.pathname);
     } else if (roomId) {
-      setSharedRoomId(roomId);
       fetchRoomFromDb('live', roomId).then(() => {
         window.history.replaceState({}, '', window.location.pathname);
       });
@@ -264,6 +273,25 @@ function App() {
       </AnimatePresence>
       <AnimatePresence>
         {isHistoryOpen && <CrateHistoryPanel />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {confirmRequest && (
+          <ConfirmDialog
+            title={confirmRequest.title}
+            message={confirmRequest.message}
+            confirmLabel={confirmRequest.confirmLabel}
+            cancelLabel={confirmRequest.cancelLabel}
+            tone={confirmRequest.tone}
+            onCancel={() => {
+              confirmRequest.resolve(false);
+              setConfirmRequest(null);
+            }}
+            onConfirm={() => {
+              confirmRequest.resolve(true);
+              setConfirmRequest(null);
+            }}
+          />
+        )}
       </AnimatePresence>
     </main>
   );

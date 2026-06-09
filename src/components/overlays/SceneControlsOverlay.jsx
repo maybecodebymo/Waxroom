@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Link, SlidersHorizontal, Globe, X, Cloud, Send, LogIn, UserCheck, Disc, Trash2 } from 'lucide-react';
+import { Link, SlidersHorizontal, Globe, X, Cloud, Send, LogIn, UserCheck, Disc, Trash2, Plus, Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { compressToEncodedURIComponent } from 'lz-string';
 import { useGalleryStore } from '../../store/useGalleryStore';
@@ -7,6 +7,7 @@ import { fetchLastFmRoom } from '../../utils/lastFmService';
 import { isFirebaseConfigured, auth } from '../../utils/firebase';
 import { signOut } from 'firebase/auth';
 import AuthModal from './AuthModal';
+import ConfirmDialog from './ConfirmDialog';
 
 function SceneControlsOverlay() {
   const canEditAlbums = useGalleryStore((state) => state.canEditAlbums);
@@ -52,6 +53,8 @@ function SceneControlsOverlay() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [lfmUser, setLfmUser] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [lfmStatus, setLfmStatus] = useState('');
+  const [lfmError, setLfmError] = useState('');
   const [shareCopied, setShareCopied] = useState(false);
 
   const [cloudStatus, setCloudStatus] = useState('');
@@ -61,6 +64,7 @@ function SceneControlsOverlay() {
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isLiveActionLoading, setIsLiveActionLoading] = useState(false);
+  const [confirmDeleteRoomOpen, setConfirmDeleteRoomOpen] = useState(false);
 
   const isAddModalOpen = useGalleryStore((state) => state.isAddModalOpen);
   const isRecommendationsOpen = useGalleryStore((state) => state.isRecommendationsOpen);
@@ -476,32 +480,54 @@ function SceneControlsOverlay() {
                           Multi-Room Selector
                         </span>
                         
-                        <div className="flex gap-2 items-center">
-                          <select
-                            value={activeRoomId}
-                            onChange={(e) => switchRoom(e.target.value)}
-                            className="min-w-0 flex-1 rounded-lg border border-white/50 bg-white/80 py-1.5 px-2.5 text-[11px] font-semibold outline-none focus:border-orange-500 focus:bg-white transition-all text-zinc-900"
-                          >
-                            {rooms.map((r) => (
-                              <option key={r.id} value={r.id}>
-                                {r.name || 'Unnamed Room'}
-                              </option>
-                            ))}
-                          </select>
-                          {rooms.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (window.confirm(`Are you sure you want to delete this room?`)) {
-                                  deleteRoom(activeRoomId);
-                                }
-                              }}
-                              className="shrink-0 p-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 cursor-pointer transition active:scale-95 flex items-center justify-center"
-                              title="Delete current room"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          )}
+                        <div className="grid grid-cols-1 gap-1.5">
+                          {rooms.map((room) => {
+                            const isActiveRoom = room.id === activeRoomId;
+                            const roomCount = isActiveRoom ? myAlbums.length : (room.albums?.length || 0);
+                            return (
+                              <div
+                                key={room.id}
+                                className={`group flex items-center gap-2 rounded-xl border p-2 transition-all ${
+                                  isActiveRoom
+                                    ? 'border-orange-400 bg-orange-500/10 shadow-[0_4px_14px_rgba(234,88,12,0.08)]'
+                                    : 'border-white/40 bg-white/40 hover:bg-white/65'
+                                }`}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => switchRoom(room.id)}
+                                  className="min-w-0 flex-1 cursor-pointer text-left"
+                                  aria-pressed={isActiveRoom}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+                                      isActiveRoom ? 'bg-orange-500 text-white' : 'bg-white/70 text-zinc-700'
+                                    }`}>
+                                      {isActiveRoom ? <Check size={13} /> : <Disc size={13} />}
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block truncate text-[10px] font-display font-extrabold uppercase tracking-wider text-zinc-900">
+                                        {room.name || 'Unnamed Room'}
+                                      </span>
+                                      <span className="block text-[8.5px] font-display font-bold uppercase tracking-widest text-zinc-500">
+                                        {roomCount} {roomCount === 1 ? 'record' : 'records'} {room.isPublished ? ' / live' : ''}
+                                      </span>
+                                    </span>
+                                  </span>
+                                </button>
+                                {rooms.length > 1 && isActiveRoom && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteRoomOpen(true)}
+                                    className="shrink-0 p-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 cursor-pointer transition active:scale-95 flex items-center justify-center"
+                                    title="Delete current room"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
 
                         {/* Create Room Form */}
@@ -521,9 +547,9 @@ function SceneControlsOverlay() {
                               createNewRoom(name);
                               setNewRoomName('');
                             }}
-                            className="shrink-0 rounded-lg text-zinc-955 px-2.5 py-1 text-[10px] font-display font-bold uppercase tracking-widest transition-all glass-btn cursor-pointer"
+                            className="shrink-0 inline-flex items-center gap-1 rounded-lg text-zinc-955 px-2.5 py-1 text-[10px] font-display font-bold uppercase tracking-widest transition-all glass-btn cursor-pointer"
                           >
-                            Add
+                            <Plus size={11} /> Add
                           </button>
                         </div>
                       </div>
@@ -533,16 +559,20 @@ function SceneControlsOverlay() {
                           e.preventDefault();
                           if (!lfmUser.trim()) return;
                           setIsSyncing(true);
+                          setLfmStatus('');
+                          setLfmError('');
                           try {
-                            setLastFmUsername(lfmUser.trim());
-                            const newRoom = await fetchLastFmRoom(lfmUser.trim(), import.meta.env.VITE_LASTFM_API_KEY);
+                            const username = lfmUser.trim();
+                            const newRoom = await fetchLastFmRoom(username, import.meta.env.VITE_LASTFM_API_KEY);
                             if (newRoom.length > 0) {
+                              setLastFmUsername(username);
                               replaceRoom(newRoom);
+                              setLfmStatus('');
                             } else {
-                              alert("No albums found for this Last.fm user.");
+                              setLfmError('Last.fm returned tracks, but no album artwork could be matched yet.');
                             }
                           } catch (err) {
-                            alert(err.message || 'Failed to sync with Last.fm');
+                            setLfmError(err.message || 'Failed to sync with Last.fm');
                           } finally {
                             setIsSyncing(false);
                           }
@@ -552,6 +582,11 @@ function SceneControlsOverlay() {
                         <span className="flex items-center gap-2 text-[10px] font-display font-bold uppercase tracking-wider text-zinc-700">
                           Last.fm Auto-Sync
                         </span>
+                        {lastFmUsername && (
+                          <p className="text-[9px] font-display font-bold uppercase tracking-wider text-emerald-600">
+                            Connected: {lastFmUsername}
+                          </p>
+                        )}
                         <div className="flex gap-2">
                             <input 
                              type="text" 
@@ -566,9 +601,15 @@ function SceneControlsOverlay() {
                              disabled={isSyncing || !lfmUser.trim()}
                              className="shrink-0 rounded-lg text-zinc-955 px-3 py-1.5 text-[10px] font-display font-bold uppercase tracking-widest transition-all glass-btn cursor-pointer"
                            >
-                             {isSyncing ? 'Syncing...' : 'Sync'}
+                             {isSyncing ? 'Syncing...' : lastFmUsername ? 'Update' : 'Connect'}
                            </button>
                         </div>
+                        {lfmStatus && (
+                          <p className="text-[9px] font-display font-bold uppercase tracking-wider text-emerald-600">{lfmStatus}</p>
+                        )}
+                        {lfmError && (
+                          <p className="text-[9px] font-display font-bold uppercase tracking-wider text-red-600">{lfmError}</p>
+                        )}
                       </form>
 
                       {vaultName && (
@@ -679,6 +720,21 @@ function SceneControlsOverlay() {
       <AnimatePresence>
         {isAuthModalOpen && (
           <AuthModal onClose={() => setIsAuthModalOpen(false)} />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {confirmDeleteRoomOpen && (
+          <ConfirmDialog
+            title="Delete Room"
+            message="Delete the current room and its records from your local collection?"
+            confirmLabel="Delete"
+            tone="danger"
+            onCancel={() => setConfirmDeleteRoomOpen(false)}
+            onConfirm={() => {
+              deleteRoom(activeRoomId);
+              setConfirmDeleteRoomOpen(false);
+            }}
+          />
         )}
       </AnimatePresence>
     </AnimatePresence>

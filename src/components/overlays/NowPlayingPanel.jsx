@@ -15,9 +15,11 @@ function NowPlayingPanel() {
 
   const selectAlbum = useGalleryStore((state) => state.selectAlbum);
   const albums = useGalleryStore((state) => state.albums);
+  const myAlbums = useGalleryStore((state) => state.myAlbums);
   const crateInbox = useGalleryStore((state) => state.crateInbox);
   const addToShelfFromCrate = useGalleryStore((state) => state.addToShelfFromCrate);
   const addAlbum = useGalleryStore((state) => state.addAlbum);
+  const addAlbumToMyRoom = useGalleryStore((state) => state.addAlbumToMyRoom);
   const canEditAlbums = useGalleryStore((state) => state.canEditAlbums);
 
   // Preview player local state
@@ -46,7 +48,9 @@ function NowPlayingPanel() {
         artist: playback.artistName,
         album: playback.albumTitle,
         albumArtUrl: playback.albumArtUrl || '/placeholder-album.png',
-        previewUrl: playback.audioPreviewUrl || null,
+        previewUrl: playback.previewUrl || null,
+        genre: playback.genre || 'Alt',
+        tracklist: playback.tracklist || [],
       };
       isPlaying = true; // Live scrobbles are considered actively spinning
       isLive = true;
@@ -92,41 +96,50 @@ function NowPlayingPanel() {
   };
 
   const isAlreadyAdded = useMemo(() => {
-    if (!current) return false;
-    return albums.some(
+    if (!current || !current.album || !current.artist) return false;
+    return myAlbums.some(
       (a) =>
-        a.album_title.toLowerCase().trim() === current.album.toLowerCase().trim() &&
-        a.artist.toLowerCase().trim() === current.artist.toLowerCase().trim()
+        (a.album_title ?? '').toLowerCase().trim() === current.album.toLowerCase().trim() &&
+        (a.artist ?? '').toLowerCase().trim() === current.artist.toLowerCase().trim()
     );
-  }, [albums, current]);
+  }, [myAlbums, current]);
 
   const matchingCrateItem = useMemo(() => {
-    if (!current) return null;
+    if (!current || !current.album || !current.artist) return null;
     return crateInbox.find(
       (a) =>
-        a.album_title.toLowerCase().trim() === current.album.toLowerCase().trim() &&
-        a.artist.toLowerCase().trim() === current.artist.toLowerCase().trim()
+        (a.album_title ?? '').toLowerCase().trim() === current.album.toLowerCase().trim() &&
+        (a.artist ?? '').toLowerCase().trim() === current.artist.toLowerCase().trim()
     );
   }, [crateInbox, current]);
 
   const handleDirectAdd = (e) => {
     e.stopPropagation();
-    if (!current || isAlreadyAdded || !canEditAlbums || isViewingShared) return;
+    if (!current || isAlreadyAdded || !canEditAlbums) return;
+
+    const albumPayload = {
+      artist: current.artist,
+      album_title: current.album,
+      genre: current.genre || 'Alt',
+      rating: 8,
+      description: isViewingShared ? 'Added from another Waxroom live session.' : 'Added directly from Now Playing.',
+      texture_url: current.albumArtUrl,
+      tracklist: current.tracklist?.length > 0 ? current.tracklist : [
+        { title: current.title, category: 'hit', previewUrl: current.previewUrl }
+      ]
+    };
+
+    if (isViewingShared) {
+      addAlbumToMyRoom(albumPayload);
+      return;
+    }
 
     if (matchingCrateItem) {
       addToShelfFromCrate(matchingCrateItem.id);
     } else {
       const newAlbum = {
         id: `a-${Date.now()}`,
-        artist: current.artist,
-        album_title: current.album,
-        genre: 'Alt',
-        rating: 8,
-        description: 'Added directly from Now Playing.',
-        texture_url: current.albumArtUrl,
-        tracklist: [
-          { title: current.title, category: 'hit', previewUrl: current.previewUrl }
-        ]
+        ...albumPayload,
       };
       addAlbum(newAlbum);
     }
@@ -249,12 +262,12 @@ function NowPlayingPanel() {
           </div>
 
           {/* Add to Room Button (if can edit and not sharing) */}
-          {canEditAlbums && !isViewingShared && (
+          {canEditAlbums && (
             <div className="pt-1">
               {isAlreadyAdded ? (
                 <div className="w-full flex items-center justify-center gap-1 py-1.5 text-[9px] font-display font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50/50 border border-emerald-200/40 rounded-xl shadow-sm">
                   <Check size={11} />
-                  Added to Room
+                  In My Room
                 </div>
               ) : (
                 <button
@@ -262,7 +275,7 @@ function NowPlayingPanel() {
                   className="w-full flex items-center justify-center gap-1.5 rounded-xl py-1.5 px-3 text-[9px] font-display font-bold uppercase tracking-wider transition-all cursor-pointer shadow-sm bg-orange-500 hover:bg-orange-600 text-white"
                 >
                   <Plus size={11} />
-                  Add to Room
+                  Add to My Room
                 </button>
               )}
             </div>
@@ -341,7 +354,7 @@ function NowPlayingPanel() {
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            {canEditAlbums && !isViewingShared && (
+            {canEditAlbums && (
               <>
                 {isAlreadyAdded ? (
                   <span className="h-8 w-8 rounded-full flex items-center justify-center text-emerald-600 bg-emerald-50 border border-emerald-200/40 shadow-sm">

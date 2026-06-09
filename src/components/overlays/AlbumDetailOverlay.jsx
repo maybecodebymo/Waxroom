@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { Disc3, Pencil, Star, Trash2, X, Play, Pause, Music } from 'lucide-react';
+import { Check, Disc3, Pencil, Plus, Star, Trash2, X, Play, Pause, Music } from 'lucide-react';
 import { useGalleryStore } from '../../store/useGalleryStore';
 import { extractAverageColor } from '../../utils/colorUtils';
+import ConfirmDialog from './ConfirmDialog';
 
 function AlbumDetailOverlay() {
   const albums = useGalleryStore((state) => state.albums);
@@ -14,6 +15,8 @@ function AlbumDetailOverlay() {
   const deleteAlbum = useGalleryStore((state) => state.deleteAlbum);
   const crateInbox = useGalleryStore((state) => state.crateInbox);
   const addToShelfFromCrate = useGalleryStore((state) => state.addToShelfFromCrate);
+  const addAlbumToMyRoom = useGalleryStore((state) => state.addAlbumToMyRoom);
+  const myAlbums = useGalleryStore((state) => state.myAlbums);
 
   const activeTrack = useGalleryStore((state) => state.activeTrack);
   const isPlaying = useGalleryStore((state) => state.isPlaying);
@@ -22,6 +25,7 @@ function AlbumDetailOverlay() {
   const setActiveBgColor = useGalleryStore((state) => state.setActiveBgColor);
 
   const [isMobile, setIsMobile] = useState(false);
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
   const audioRef = useRef(null);
 
   useEffect(() => {
@@ -39,6 +43,15 @@ function AlbumDetailOverlay() {
   const isFromCrate = useMemo(() => {
     return crateInbox.some((entry) => entry.id === selectedAlbumId);
   }, [crateInbox, selectedAlbumId]);
+
+  const isInMyRoom = useMemo(() => {
+    if (!album) return false;
+    return myAlbums.some(
+      (entry) =>
+        (entry.album_title || '').toLowerCase().trim() === (album.album_title || '').toLowerCase().trim() &&
+        (entry.artist || '').toLowerCase().trim() === (album.artist || '').toLowerCase().trim()
+    );
+  }, [album, myAlbums]);
 
   // Color blending hook
   useEffect(() => {
@@ -259,9 +272,23 @@ function AlbumDetailOverlay() {
             </div>
 
             {/* Footer action buttons (pinned) */}
-            {canEditAlbums && !isViewingShared && (
+            {canEditAlbums && (
               <div className="mt-5 flex items-center justify-end gap-2 border-t border-white/20 pt-4 shrink-0">
-                {isFromCrate ? (
+                {isViewingShared ? (
+                  isInMyRoom ? (
+                    <div className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-50/70 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-emerald-700 border border-emerald-200/60 shadow-sm">
+                      <Check size={13} /> In My Room
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => addAlbumToMyRoom(album)}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 hover:bg-orange-600 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-[0_4px_12px_rgba(234,88,12,0.2)] transition-all cursor-pointer active:scale-97"
+                    >
+                      <Plus size={13} /> Add to My Room
+                    </button>
+                  )
+                ) : isFromCrate ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -282,11 +309,7 @@ function AlbumDetailOverlay() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (window.confirm(`Are you sure you want to remove "${album.album_title}" from your room?`)) {
-                          deleteAlbum(album.id);
-                        }
-                      }}
+                      onClick={() => setConfirmRemoveOpen(true)}
                       className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-wider text-red-600 bg-red-50/50 border border-red-200/50 backdrop-blur-md hover:bg-red-50 hover:text-red-700 transition-all cursor-pointer active:scale-97"
                     >
                       <Trash2 size={12} /> Remove
@@ -294,6 +317,19 @@ function AlbumDetailOverlay() {
                   </>
                 )}
               </div>
+            )}
+            {confirmRemoveOpen && (
+              <ConfirmDialog
+                title="Remove Record"
+                message={`Remove "${album.album_title}" from your room?`}
+                confirmLabel="Remove"
+                tone="danger"
+                onCancel={() => setConfirmRemoveOpen(false)}
+                onConfirm={() => {
+                  deleteAlbum(album.id);
+                  setConfirmRemoveOpen(false);
+                }}
+              />
             )}
           </motion.aside>
         </>

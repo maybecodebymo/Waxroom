@@ -240,7 +240,7 @@ function TimelineFeed() {
                       ) : (
                         <button
                           onClick={() => {
-                            loadSharedRoom(room.ownerName, room.albums);
+                            loadSharedRoom(room.ownerName, room.albums, room.id, room.activePlayback || null);
                             setFeedOpen(false);
                           }}
                           className="text-[9px] font-display font-extrabold uppercase tracking-widest py-1 px-2.5 rounded-xl transition-all glass-btn text-zinc-800 cursor-pointer"

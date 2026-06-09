@@ -9,12 +9,14 @@ import {
   sendSignInLinkToEmail
 } from 'firebase/auth';
 import { useGalleryStore } from '../../store/useGalleryStore';
+import ConfirmDialog from './ConfirmDialog';
 
 function AuthModal({ onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
   const [emailSent, setEmailSent] = useState(false);
+  const [googleSwitchPending, setGoogleSwitchPending] = useState(false);
   const backupRoomToCloud = useGalleryStore((state) => state.backupRoomToCloud);
 
   const handleGoogleAuth = async () => {
@@ -33,13 +35,7 @@ function AuthModal({ onClose }) {
           onClose();
         } catch (linkErr) {
           if (linkErr.code === 'auth/credential-already-in-use') {
-            const confirmMerge = window.confirm(
-              "This Google account is already linked to another Waxroom. Signing in will switch to that room and discard your current local changes. Do you want to continue?"
-            );
-            if (confirmMerge) {
-              await signInWithPopup(auth, provider);
-              onClose();
-            }
+            setGoogleSwitchPending(true);
           } else {
             throw linkErr;
           }
@@ -51,6 +47,22 @@ function AuthModal({ onClose }) {
     } catch (err) {
       console.error('Google authentication failed:', err);
       setError(err.message || 'Google sign-in failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmGoogleSwitch = async () => {
+    if (!isFirebaseConfigured || !auth) return;
+    setLoading(true);
+    setError('');
+    try {
+      await signInWithPopup(auth, new GoogleAuthProvider());
+      setGoogleSwitchPending(false);
+      onClose();
+    } catch (err) {
+      console.error('Google account switch failed:', err);
+      setError(err.message || 'Google account switch failed');
     } finally {
       setLoading(false);
     }
@@ -200,6 +212,15 @@ function AuthModal({ onClose }) {
             Secure connection powered by Firebase Auth
           </p>
         </div>
+        {googleSwitchPending && (
+          <ConfirmDialog
+            title="Switch Profile"
+            message="This Google account is already linked to another Waxroom. Switching will load that profile and replace local guest changes."
+            confirmLabel="Switch"
+            onCancel={() => setGoogleSwitchPending(false)}
+            onConfirm={confirmGoogleSwitch}
+          />
+        )}
       </motion.div>
     </motion.div>
   );

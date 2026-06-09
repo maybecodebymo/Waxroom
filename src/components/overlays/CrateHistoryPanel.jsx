@@ -1,8 +1,11 @@
 import { motion } from 'framer-motion';
 import { X, Disc, Trash2, Inbox, History, Sparkles } from 'lucide-react';
+import { useState } from 'react';
 import { useGalleryStore } from '../../store/useGalleryStore';
+import ConfirmDialog from './ConfirmDialog';
 
 function CrateHistoryPanel() {
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const setHistoryOpen = useGalleryStore((state) => state.setHistoryOpen);
   const crateInbox = useGalleryStore((state) => state.crateInbox);
   const addToShelfFromCrate = useGalleryStore((state) => state.addToShelfFromCrate);
@@ -104,11 +107,7 @@ function CrateHistoryPanel() {
                 {crateInbox && crateInbox.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => {
-                      if (window.confirm('Clear all items from your Crate?')) {
-                        clearCrate();
-                      }
-                    }}
+                    onClick={() => setConfirmClearOpen(true)}
                     className="text-[9px] font-display font-bold uppercase tracking-widest text-red-500 hover:text-red-700 transition cursor-pointer flex items-center gap-1"
                   >
                     <Trash2 size={11} /> Clear All
@@ -209,6 +208,19 @@ function CrateHistoryPanel() {
           </div>
         </div>
       </div>
+      {confirmClearOpen && (
+        <ConfirmDialog
+          title="Clear Crate"
+          message="Clear every auto-collected record from your crate?"
+          confirmLabel="Clear"
+          tone="danger"
+          onCancel={() => setConfirmClearOpen(false)}
+          onConfirm={() => {
+            clearCrate();
+            setConfirmClearOpen(false);
+          }}
+        />
+      )}
     </motion.aside>
   );
 }
