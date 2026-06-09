@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Link, SlidersHorizontal, Globe, X, Cloud, Send, LogIn, LogOut, UserCheck, Disc, Plus, Trash2, Music } from 'lucide-react';
+import { Link, SlidersHorizontal, Globe, X, Cloud, Send, LogIn, UserCheck, Disc, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { compressToEncodedURIComponent } from 'lz-string';
 import { useGalleryStore } from '../../store/useGalleryStore';
@@ -8,43 +8,12 @@ import { isFirebaseConfigured, auth } from '../../utils/firebase';
 import { signOut } from 'firebase/auth';
 import AuthModal from './AuthModal';
 
-// PKCE authorization helper functions
-const generateRandomString = (length) => {
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
-  const values = crypto.getRandomValues(new Uint8Array(length));
-  return values.reduce((acc, x) => acc + possible[x % possible.length], '');
-};
-
-const sha256 = async (plain) => {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(plain);
-  return window.crypto.subtle.digest('SHA-256', data);
-};
-
-const base64urlencode = (buffer) => {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
-};
-
-const generateCodeChallenge = async (codeVerifier) => {
-  const hashed = await sha256(codeVerifier);
-  return base64urlencode(hashed);
-};
-
 function SceneControlsOverlay() {
   const canEditAlbums = useGalleryStore((state) => state.canEditAlbums);
   const vaultName = useGalleryStore((state) => state.vaultName);
   const setVaultName = useGalleryStore((state) => state.setVaultName);
   const isFeedOpen = useGalleryStore((state) => state.isFeedOpen);
   const setFeedOpen = useGalleryStore((state) => state.setFeedOpen);
-  const timelineRooms = useGalleryStore((state) => state.timelineRooms);
   const [isOpen, setIsOpen] = useState(false);
   const selectedAlbumId = useGalleryStore((state) => state.selectedAlbumId);
   const replaceRoom = useGalleryStore((state) => state.replaceRoom);
@@ -57,9 +26,9 @@ function SceneControlsOverlay() {
   const backupRoomToCloud = useGalleryStore((state) => state.backupRoomToCloud);
   const isPublished = useGalleryStore((state) => state.isPublished);
   const publishedDescription = useGalleryStore((state) => state.publishedDescription);
-  const lastPublishedVaultName = useGalleryStore((state) => state.lastPublishedVaultName);
   const unpublishRoom = useGalleryStore((state) => state.unpublishRoom);
   const publishRoom = useGalleryStore((state) => state.publishRoom);
+  const timelineError = useGalleryStore((state) => state.timelineError);
   const myAlbums = useGalleryStore((state) => state.myAlbums);
 
   const user = useGalleryStore((state) => state.user);
@@ -74,10 +43,6 @@ function SceneControlsOverlay() {
   const createNewRoom = useGalleryStore((state) => state.createNewRoom);
   const switchRoom = useGalleryStore((state) => state.switchRoom);
   const deleteRoom = useGalleryStore((state) => state.deleteRoom);
-
-  // Spotify store hooks
-  const spotifyAccessToken = useGalleryStore((state) => state.spotifyAccessToken);
-  const populateRoomFromSpotify = useGalleryStore((state) => state.populateRoomFromSpotify);
 
   // History state hooks
   const isHistoryOpen = useGalleryStore((state) => state.isHistoryOpen);
@@ -95,14 +60,13 @@ function SceneControlsOverlay() {
   const [description, setDescription] = useState('');
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isLiveActionLoading, setIsLiveActionLoading] = useState(false);
 
   const isAddModalOpen = useGalleryStore((state) => state.isAddModalOpen);
   const isRecommendationsOpen = useGalleryStore((state) => state.isRecommendationsOpen);
 
   // Local inputs
   const [newRoomName, setNewRoomName] = useState('');
-  const [isSpotifyImporting, setIsSpotifyImporting] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   useEffect(() => {
     if (lastFmUsername) {
@@ -139,12 +103,8 @@ function SceneControlsOverlay() {
   }, [isOpen]);
 
   const showExpanded = !isMobile || isExpanded || (!hasCompletedTour && !isViewingShared && tourStepIndex >= 3);
-  const activeRoom = timelineRooms.find(r => 
-    r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim() ||
-    r.ownerName?.toLowerCase().trim() === lastPublishedVaultName?.toLowerCase().trim()
-  );
-  const isCurrentlyPublished = isPublished || !!activeRoom;
-  const displayDescription = publishedDescription || activeRoom?.description || '';
+  const isCurrentlyPublished = isPublished;
+  const displayDescription = publishedDescription;
 
   useEffect(() => {
     setDescription(displayDescription);
@@ -631,14 +591,20 @@ function SceneControlsOverlay() {
                             {/* Toggle Switch */}
                             <button
                               type="button"
-                              onClick={() => {
-                                if (isCurrentlyPublished) {
-                                  unpublishRoom(activeRoom?.id);
-                                } else {
-                                  publishRoom(description.trim());
+                              disabled={isLiveActionLoading || (!isCurrentlyPublished && myAlbums.length === 0)}
+                              onClick={async () => {
+                                setIsLiveActionLoading(true);
+                                try {
+                                  if (isCurrentlyPublished) {
+                                    await unpublishRoom();
+                                  } else {
+                                    await publishRoom(description.trim());
+                                  }
+                                } finally {
+                                  setIsLiveActionLoading(false);
                                 }
                               }}
-                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
+                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none disabled:opacity-40 disabled:cursor-not-allowed ${
                                 isCurrentlyPublished ? 'bg-orange-500' : 'bg-zinc-300'
                               }`}
                               aria-label="Toggle Live Status"
@@ -681,7 +647,7 @@ function SceneControlsOverlay() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => unpublishRoom(activeRoom?.id)}
+                                  onClick={() => unpublishRoom()}
                                   className="flex-1 rounded-lg text-red-600 py-1.5 px-3 text-[10px] font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer text-center"
                                 >
                                   Go Offline
@@ -697,6 +663,9 @@ function SceneControlsOverlay() {
                               </button>
                             )}
                           </form>
+                          {timelineError && (
+                            <p className="text-[9px] font-display font-bold uppercase text-red-600 mt-1">{timelineError}</p>
+                          )}
                         </div>
                       )}
                     </div>

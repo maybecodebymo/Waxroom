@@ -97,78 +97,8 @@ function App() {
     };
   }, [initializeAuth]);
 
-  // Catch Spotify OAuth PKCE code redirect callback
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const spotifyError = urlParams.get('error');
-
-    if (spotifyError) {
-      console.error('Spotify Auth Error:', spotifyError);
-      alert('Spotify authentication failed: ' + spotifyError);
-      // Clean query parameters
-      try {
-        const url = new URL(window.location.href);
-        url.searchParams.delete('error');
-        url.searchParams.delete('state');
-        window.history.replaceState(null, null, url.toString());
-      } catch (urlErr) {
-        window.history.replaceState(null, null, window.location.origin + window.location.pathname);
-      }
-    } else if (code) {
-      const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID || '282d90dc2bce49789047a2afe3411004';
-      const redirectUri = window.location.origin + window.location.pathname;
-      const codeVerifier = localStorage.getItem('spotify_code_verifier');
-
-      if (codeVerifier) {
-        const exchangeCodeForToken = async () => {
-          try {
-            const response = await fetch('https://accounts.spotify.com/api/token', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-              },
-              body: new URLSearchParams({
-                client_id: clientId,
-                grant_type: 'authorization_code',
-                code: code,
-                redirect_uri: redirectUri,
-                code_verifier: codeVerifier,
-              }),
-            });
-
-            if (!response.ok) {
-              const errData = await response.json().catch(() => ({}));
-              throw new Error(errData.error_description || errData.error || `HTTP ${response.status}`);
-            }
-
-            const data = await response.json();
-            if (data.access_token) {
-              const expiresMs = data.expires_in ? data.expires_in * 1000 : 3600 * 1000;
-              useGalleryStore.getState().setSpotifyToken(data.access_token, expiresMs);
-            }
-          } catch (err) {
-            console.error('Failed to exchange Spotify authorization code:', err);
-            alert('Failed to connect Spotify: ' + err.message);
-          } finally {
-            localStorage.removeItem('spotify_code_verifier');
-            // Clean Spotify-related search params while preserving other app query params
-            try {
-              const url = new URL(window.location.href);
-              url.searchParams.delete('code');
-              url.searchParams.delete('state');
-              url.searchParams.delete('error');
-              window.history.replaceState(null, null, url.toString());
-            } catch (urlErr) {
-              console.error('Failed to clean Spotify search params:', urlErr);
-              window.history.replaceState(null, null, window.location.origin + window.location.pathname);
-            }
-          }
-        };
-
-        exchangeCodeForToken();
-      }
-    }
+    localStorage.removeItem('spotify_code_verifier');
   }, []);
 
   // Subscribe to live room playback if visiting another user's live room

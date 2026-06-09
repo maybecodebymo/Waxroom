@@ -71,12 +71,6 @@ export const useGalleryStore = create(
       vaultName: '',
       rooms: [{ id: 'default', name: 'My Room', albums: [], description: '', isPublished: false }],
       activeRoomId: 'default',
-      spotifyAccessToken: '',
-      spotifyTokenExpiry: 0,
-      setSpotifyToken: (token, expiresMs) => set({
-        spotifyAccessToken: token,
-        spotifyTokenExpiry: Date.now() + expiresMs
-      }),
       createNewRoom: async (name) => {
         const id = `room_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
         const newRoom = { id, name, albums: [], description: '', isPublished: false };
@@ -182,112 +176,6 @@ export const useGalleryStore = create(
         }
         
         await get().backupRoomToCloud();
-      },
-      populateRoomFromSpotify: async (type) => {
-        const token = get().spotifyAccessToken;
-        if (!token) return { success: false, error: 'Spotify not connected' };
-
-        try {
-          let url = '';
-          if (type === 'tracks') {
-            url = 'https://api.spotify.com/v1/me/top/tracks?limit=20';
-          } else if (type === 'albums') {
-            url = 'https://api.spotify.com/v1/me/albums?limit=20';
-          } else {
-            return { success: false, error: 'Invalid import type' };
-          }
-
-          const response = await fetch(url, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.error?.message || `HTTP error ${response.status}`);
-          }
-
-          const data = await response.json();
-          let importedAlbums = [];
-
-          if (type === 'tracks' && data.items) {
-            importedAlbums = data.items.map((track) => {
-              const artistName = track.artists?.map(a => a.name).join(', ') || 'Unknown Artist';
-              const albumTitle = track.album?.name || 'Unknown Album';
-              const albumArtUrl = track.album?.images?.[0]?.url || '/placeholder-album.png';
-              
-              return {
-                id: `sp-track-${track.id}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-                artist: artistName,
-                album_title: albumTitle,
-                genre: 'Pop',
-                rating: 8,
-                description: `Imported top track "${track.name}" from Spotify!`,
-                texture_url: albumArtUrl,
-                tracklist: [{ title: track.name, category: 'hit' }]
-              };
-            });
-          } else if (type === 'albums' && data.items) {
-            importedAlbums = data.items.map((item) => {
-              const album = item.album;
-              if (!album) return null;
-              const artistName = album.artists?.map(a => a.name).join(', ') || 'Unknown Artist';
-              const albumTitle = album.name || 'Unknown Album';
-              const albumArtUrl = album.images?.[0]?.url || '/placeholder-album.png';
-              const tracksList = album.tracks?.items?.map(t => ({
-                title: t.name,
-                category: 'meh'
-              })) || [];
-
-              return {
-                id: `sp-album-${album.id}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-                artist: artistName,
-                album_title: albumTitle,
-                genre: 'Alt',
-                rating: 8,
-                description: `Imported saved album from Spotify!`,
-                texture_url: albumArtUrl,
-                tracklist: tracksList.length > 0 ? tracksList : [{ title: 'Track 1', category: 'meh' }]
-              };
-            }).filter(Boolean);
-          }
-
-          if (importedAlbums.length === 0) {
-            return { success: true, count: 0 };
-          }
-
-          const currentAlbums = [...get().myAlbums];
-          const added = [];
-          
-          for (const imp of importedAlbums) {
-            const exists = currentAlbums.some(
-              (a) => a.album_title.toLowerCase().trim() === imp.album_title.toLowerCase().trim()
-            );
-            if (!exists) {
-              currentAlbums.push(imp);
-              added.push(imp);
-            }
-          }
-
-          if (added.length > 0) {
-            set({
-              myAlbums: currentAlbums,
-              albums: currentAlbums,
-              genres: buildGenres(currentAlbums),
-              activeGenre: 'All',
-              selectedAlbumId: added[added.length - 1].id
-            });
-
-            await get().syncLiveRoomToFirestore();
-            await get().backupRoomToCloud();
-          }
-
-          return { success: true, count: added.length };
-        } catch (err) {
-          console.error('Spotify import failed:', err);
-          return { success: false, error: err.message };
-        }
       },
       setVaultName: async (name) => {
         set({ vaultName: name });
@@ -524,7 +412,13 @@ export const useGalleryStore = create(
         const myAlbums = get().myAlbums;
         const vaultName = get().vaultName || 'Anonymous';
         const user = get().user;
-        if (!user) return;
+        if (!user) {
+          set({ timelineError: 'Sign in required to go live' });
+          return { success: false, error: 'Not authenticated' };
+        }
+
+        const activeRoomId = get().activeRoomId;
+        const docId = `${user.uid}_${activeRoomId}`;
         const desc = description || 'No description provided.';
         const newRoom = {
           ownerName: vaultName,
@@ -539,30 +433,40 @@ export const useGalleryStore = create(
           updatedAt: Date.now(),
         };
 
-        set({
+        const applyPublishedState = () => set((state) => ({
           isPublished: true,
           publishedDescription: desc,
           lastPublishedVaultName: vaultName,
-          timelineError: null
-        });
+          timelineError: null,
+          rooms: state.rooms.map((r) => r.id === activeRoomId ? {
+            ...r,
+            name: vaultName,
+            albums: myAlbums,
+            description: desc,
+            isPublished: true,
+          } : r),
+        }));
 
         if (isFirebaseConfigured && db) {
           try {
-            await setDoc(doc(db, 'community_rooms', `${user.uid}_${get().activeRoomId}`), newRoom);
+            await setDoc(doc(db, 'community_rooms', docId), newRoom);
+            applyPublishedState();
             await get().fetchTimelineRooms();
+            await get().backupRoomToCloud();
+            return { success: true };
           } catch (err) {
             console.error('Failed to publish room to Firestore:', err);
             set({ timelineError: `Publish failed: ${err.message}` });
-            set((state) => ({
-              timelineRooms: [{ id: `${user.uid}_${get().activeRoomId}`, ...newRoom }, ...state.timelineRooms.filter(r => r.id !== `${user.uid}_${get().activeRoomId}`)],
-            }));
+            return { success: false, error: err.message };
           }
-        } else {
-          const localId = `room-${user.uid}_${get().activeRoomId}`;
-          set((state) => ({
-            timelineRooms: [{ id: localId, ...newRoom }, ...state.timelineRooms.filter(r => r.id !== localId)],
-          }));
         }
+
+        applyPublishedState();
+        const localId = `room-${docId}`;
+        set((state) => ({
+          timelineRooms: [{ id: localId, ...newRoom }, ...state.timelineRooms.filter((r) => r.id !== localId)],
+        }));
+        return { success: true };
       },
       syncLiveRoomToFirestore: async () => {
         if (!isFirebaseConfigured || !db) return;
@@ -590,32 +494,54 @@ export const useGalleryStore = create(
           set({ timelineError: `Sync failed: ${err.message}` });
         }
       },
-      unpublishRoom: async () => {
+      unpublishRoom: async (roomDocId) => {
         const user = get().user;
-        if (!user) return;
+        if (!user) {
+          return { success: false, error: 'Not authenticated' };
+        }
 
-        set({
-          isPublished: false,
-          publishedDescription: '',
-          lastPublishedVaultName: '',
-          timelineError: null
+        const docId = roomDocId || `${user.uid}_${get().activeRoomId}`;
+        const prefix = `${user.uid}_`;
+        const roomIdFromDoc = docId.startsWith(prefix) ? docId.slice(prefix.length) : get().activeRoomId;
+        const isActiveRoom = roomIdFromDoc === get().activeRoomId;
+
+        const applyUnpublishedState = () => set((state) => {
+          const updates = {
+            timelineRooms: state.timelineRooms.filter((r) => r.id !== docId && r.id !== `room-${docId}`),
+            timelineError: null,
+            rooms: state.rooms.map((r) => r.id === roomIdFromDoc ? {
+              ...r,
+              isPublished: false,
+              description: '',
+            } : r),
+          };
+
+          if (isActiveRoom) {
+            updates.isPublished = false;
+            updates.publishedDescription = '';
+            updates.lastPublishedVaultName = '';
+          }
+
+          return updates;
         });
 
         if (isFirebaseConfigured && db) {
           try {
-            await deleteDoc(doc(db, 'community_rooms', `${user.uid}_${get().activeRoomId}`));
+            await deleteDoc(doc(db, 'community_rooms', docId));
+            applyUnpublishedState();
             await get().fetchTimelineRooms();
+            await get().backupRoomToCloud();
+            return { success: true };
           } catch (err) {
             console.error('Failed to delete live room from Firestore:', err);
             set({ timelineError: `Go offline failed: ${err.message}` });
+            return { success: false, error: err.message };
           }
-        } else {
-          // If in local-only fallback mode, filter out the local room
-          const localId = `room-${user.uid}_${get().activeRoomId}`;
-          set((state) => ({
-            timelineRooms: state.timelineRooms.filter((r) => r.id !== localId),
-          }));
         }
+
+        applyUnpublishedState();
+        await get().backupRoomToCloud();
+        return { success: true };
       },
       fetchTimelineRooms: async () => {
         if (!isFirebaseConfigured || !db) return;
@@ -886,8 +812,6 @@ export const useGalleryStore = create(
         lastFmUsername: state.lastFmUsername,
         rooms: state.rooms,
         activeRoomId: state.activeRoomId,
-        spotifyAccessToken: state.spotifyAccessToken,
-        spotifyTokenExpiry: state.spotifyTokenExpiry,
       }),
       merge: (persistedState, currentState) => {
         const storedMyAlbums = persistedState?.myAlbums;
@@ -939,8 +863,6 @@ export const useGalleryStore = create(
           lastFmUsername: persistedState?.lastFmUsername ?? '',
           rooms,
           activeRoomId,
-          spotifyAccessToken: persistedState?.spotifyAccessToken ?? '',
-          spotifyTokenExpiry: persistedState?.spotifyTokenExpiry ?? 0,
         };
       },
     }

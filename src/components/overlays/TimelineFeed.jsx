@@ -17,7 +17,6 @@ function TimelineFeed() {
   const timelineError = useGalleryStore((state) => state.timelineError);
   const isPublished = useGalleryStore((state) => state.isPublished);
   const publishedDescription = useGalleryStore((state) => state.publishedDescription);
-  const lastPublishedVaultName = useGalleryStore((state) => state.lastPublishedVaultName);
   const unpublishRoom = useGalleryStore((state) => state.unpublishRoom);
   const user = useGalleryStore((state) => state.user);
 
@@ -27,13 +26,10 @@ function TimelineFeed() {
   }, [subscribeToTimelineRooms]);
 
   const [description, setDescription] = useState('');
+  const [isLiveActionLoading, setIsLiveActionLoading] = useState(false);
 
-  const activeRoom = timelineRooms.find(r => 
-    r.ownerName?.toLowerCase().trim() === vaultName?.toLowerCase().trim() ||
-    r.ownerName?.toLowerCase().trim() === lastPublishedVaultName?.toLowerCase().trim()
-  );
-  const isCurrentlyPublished = isPublished || !!activeRoom;
-  const displayDescription = publishedDescription || activeRoom?.description || '';
+  const isCurrentlyPublished = isPublished;
+  const displayDescription = publishedDescription;
 
   useEffect(() => {
     setDescription(displayDescription);
@@ -92,14 +88,20 @@ function TimelineFeed() {
               
               <button
                 type="button"
-                onClick={() => {
-                  if (isCurrentlyPublished) {
-                    unpublishRoom(activeRoom?.id);
-                  } else {
-                    publishRoom(description.trim());
+                disabled={isLiveActionLoading || (!isCurrentlyPublished && myAlbums.length === 0)}
+                onClick={async () => {
+                  setIsLiveActionLoading(true);
+                  try {
+                    if (isCurrentlyPublished) {
+                      await unpublishRoom();
+                    } else {
+                      await publishRoom(description.trim());
+                    }
+                  } finally {
+                    setIsLiveActionLoading(false);
                   }
                 }}
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none disabled:opacity-40 disabled:cursor-not-allowed ${
                   isCurrentlyPublished ? 'bg-orange-500' : 'bg-zinc-300'
                 }`}
                 aria-label="Toggle Live Status"
@@ -143,7 +145,7 @@ function TimelineFeed() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => unpublishRoom(activeRoom?.id)}
+                      onClick={() => unpublishRoom()}
                       className="flex-1 rounded-xl text-red-600 py-2 px-3 text-xs font-display font-bold uppercase tracking-wider transition-all glass-btn cursor-pointer text-center"
                     >
                       Go Offline
@@ -197,7 +199,7 @@ function TimelineFeed() {
             ) : (
               timelineRooms.map((room) => {
                 const isCurrent = isViewingShared && sharedOwnerName === room.ownerName;
-                const isOwnRoom = !isViewingShared && user && (room.id === user.uid || room.ownerUid === user.uid);
+                const isOwnRoom = !isViewingShared && user && room.ownerUid === user.uid;
 
                 return (
                   <div
