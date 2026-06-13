@@ -132,7 +132,11 @@ function SceneControlsOverlay() {
           transition={{ duration: 0.2 }}
           className={`absolute right-4 top-[72px] md:top-8 z-30 md:right-8 ${
             showExpanded
-              ? 'w-[280px] md:w-[330px] rounded-2xl glass md:bg-[#f5f5f3] md:backdrop-blur-none md:border-zinc-200/70 md:shadow-[0_8px_40px_rgba(0,0,0,0.10)]'
+              ? `w-[280px] md:w-[330px] rounded-2xl ${
+                  isMobile
+                    ? 'glass'
+                    : 'bg-[#f5f5f3] border border-zinc-200/70 shadow-[0_8px_40px_rgba(0,0,0,0.10)]'
+                }`
               : 'w-auto'
           }`}
         >
