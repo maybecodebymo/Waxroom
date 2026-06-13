@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" fill="none">
+  <!-- Dark overlay backdrop -->
+  <rect width="1080" height="1920" fill="url(#bgGrad)"/>
+  <defs>
+    <radialGradient id="bgGrad" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%" stop-color="#27272a"/>
+      <stop offset="100%" stop-color="#09090b"/>
+    </radialGradient>
+    <linearGradient id="discShine" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+  </defs>
+  <!-- Record disc mark -->
+  <circle cx="540" cy="680" r="60" fill="none" stroke="#f5f5f3" stroke-width="2.5"/>
+  <circle cx="540" cy="680" r="42" fill="none" stroke="#f5f5f3" stroke-width="1.5" opacity="0.3"/>
+  <circle cx="540" cy="680" r="24" fill="none" stroke="#f5f5f3" stroke-width="1" opacity="0.2"/>
+  <circle cx="540" cy="680" r="10" fill="url(#discShine)"/>
+  <circle cx="540" cy="680" r="3.5" fill="#09090b"/>
+  <!-- Wordmark -->
+  <text x="540" y="800" text-anchor="middle" font-family="Syne, 'Satoshi', -apple-system, sans-serif" font-size="80" font-weight="800" letter-spacing="12" fill="#f5f5f3">WAXROOM</text>
+  <!-- Tagline -->
+  <text x="540" y="848" text-anchor="middle" font-family="'Satoshi', Syne, -apple-system, sans-serif" font-size="22" font-weight="700" letter-spacing="14" fill="#a1a1aa">YOUR COLLECTION. IN FULL DIMENSION.</text>
+  <!-- CTA -->
+  <rect x="340" y="920" width="400" height="56" rx="28" fill="none" stroke="#f5f5f3" stroke-width="1.5" opacity="0.5"/>
+  <text x="540" y="954" text-anchor="middle" font-family="'Satoshi', Syne, -apple-system, sans-serif" font-size="18" font-weight="700" letter-spacing="6" fill="#f5f5f3">TRY IT NOW</text>
+</svg>
